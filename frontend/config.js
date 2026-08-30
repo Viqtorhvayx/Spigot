@@ -21,7 +21,7 @@ const X1_NETWORK_PARAMS = {
 // cloud.walletconnect.com) — takes about 2 minutes, no cost. Until this
 // is set, the "WalletConnect" option shows a message instead of a QR code;
 // the "Browser Wallet" option is unaffected either way.
-const WALLETCONNECT_PROJECT_ID = '';
+const WALLETCONNECT_PROJECT_ID = '3f1bcfe1d030974ffed5d41ff2f06d5b';
 
 const METERLY_ABI = [
   { "inputs": [{ "internalType": "address", "name": "_feeRecipient", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" },
