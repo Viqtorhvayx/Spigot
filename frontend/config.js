@@ -15,6 +15,14 @@ const X1_NETWORK_PARAMS = {
   blockExplorerUrls: [X1_EXPLORER_URL],
 };
 
+// Lets visitors with no browser wallet extension (e.g. plain mobile
+// Chrome/Safari) connect by scanning a QR code with a wallet app instead.
+// Get a free Project ID at https://cloud.reown.com (formerly
+// cloud.walletconnect.com) — takes about 2 minutes, no cost. Until this
+// is set, the "WalletConnect" option shows a message instead of a QR code;
+// the "Browser Wallet" option is unaffected either way.
+const WALLETCONNECT_PROJECT_ID = '';
+
 const METERLY_ABI = [
   { "inputs": [{ "internalType": "address", "name": "_feeRecipient", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" },
   { "inputs": [], "name": "DailyLimitReached", "type": "error" },

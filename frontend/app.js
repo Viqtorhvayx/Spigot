@@ -118,11 +118,33 @@ async function runTx(promiseFn, { pending, success, button } = {}) {
 
 // ---------- wallet ----------
 
+let wcProvider = null; // the raw WalletConnect EthereumProvider, if that path was used
+
 function renderWalletArea() {
   const el = document.getElementById('walletArea');
   if (!account) {
-    el.innerHTML = `<button id="connectBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:bg-lime-300 transition">Connect Wallet</button>`;
-    document.getElementById('connectBtn').onclick = connectWallet;
+    el.innerHTML = `
+      <div class="relative">
+        <button id="connectBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:bg-lime-300 transition">Connect Wallet</button>
+        <div id="connectMenu" class="hidden absolute right-0 mt-2 w-60 bg-panel border border-border rounded-xl shadow-lg overflow-hidden z-50">
+          <button id="connectInjected" class="w-full text-left px-4 py-3 hover:bg-panel2 transition">
+            <div class="text-sm font-semibold">Browser Wallet</div>
+            <div class="text-xs text-slate-500">MetaMask or another extension</div>
+          </button>
+          <button id="connectWC" class="w-full text-left px-4 py-3 hover:bg-panel2 transition border-t border-border">
+            <div class="text-sm font-semibold">WalletConnect</div>
+            <div class="text-xs text-slate-500">Scan a QR with a mobile wallet</div>
+          </button>
+        </div>
+      </div>`;
+    const menu = document.getElementById('connectMenu');
+    document.getElementById('connectBtn').onclick = (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('hidden');
+    };
+    document.getElementById('connectInjected').onclick = connectWallet;
+    document.getElementById('connectWC').onclick = connectWalletConnect;
+    document.addEventListener('click', () => menu.classList.add('hidden'), { once: true });
     return;
   }
   el.innerHTML = `
@@ -135,40 +157,86 @@ function renderWalletArea() {
   });
 }
 
+// Injected wallet (MetaMask extension, or a mobile wallet's in-app browser).
+// Every step below talks to window.ethereum directly and is fully awaited
+// before the next one fires — some mobile wallet bridges (Coinbase Wallet,
+// MetaMask mobile) throw a "could not coalesce" error when they receive
+// overlapping requests, which happens if ethers' own automatic network
+// detection races with our explicit calls. Passing a static `network` to
+// BrowserProvider below disables that auto-detection entirely.
 async function connectWallet() {
   if (!window.ethereum) {
-    toast('No wallet found — install MetaMask or another EVM wallet', 'error');
+    toast('No browser wallet found — try WalletConnect instead, or install MetaMask', 'error');
     return;
   }
   try {
-    browserProvider = new ethers.BrowserProvider(window.ethereum);
-    await browserProvider.send('eth_requestAccounts', []);
-    await ensureNetwork();
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    await ensureNetworkInjected();
+    browserProvider = new ethers.BrowserProvider(window.ethereum, { chainId: X1_CHAIN_ID_DEC, name: 'x1-maculatus' });
     signer = await browserProvider.getSigner();
-    signerContract = new ethers.Contract(CONTRACT_ADDRESS, METERLY_ABI, signer);
-    account = await signer.getAddress();
-    renderWalletArea();
-    refreshAccountPanel();
-    refreshMyServices();
-    toast('Wallet connected', 'success');
+    await finishConnect();
   } catch (err) {
     console.error(err);
     toast(friendlyError(err), 'error');
   }
 }
 
-async function ensureNetwork() {
-  const net = await browserProvider.send('eth_chainId', []);
-  if (net.toLowerCase() === X1_CHAIN_ID_HEX) return;
+async function ensureNetworkInjected() {
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  if (chainId?.toLowerCase() === X1_CHAIN_ID_HEX) return;
   try {
-    await browserProvider.send('wallet_switchEthereumChain', [{ chainId: X1_CHAIN_ID_HEX }]);
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: X1_CHAIN_ID_HEX }] });
   } catch (switchErr) {
     if (switchErr.code === 4902) {
-      await browserProvider.send('wallet_addEthereumChain', [X1_NETWORK_PARAMS]);
+      await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [X1_NETWORK_PARAMS] });
     } else {
       throw switchErr;
     }
   }
+}
+
+// WalletConnect v2 — for visitors on a plain mobile browser with no
+// injected wallet at all, connecting by scanning a QR code (or a deep
+// link) with a wallet app on their phone. Loaded lazily so a page load
+// never pays for it unless someone actually clicks this option.
+async function connectWalletConnect() {
+  if (!WALLETCONNECT_PROJECT_ID) {
+    toast('WalletConnect isn\'t configured on this deployment yet — use a browser wallet for now', 'error');
+    return;
+  }
+  try {
+    const { EthereumProvider } = await import('https://esm.sh/@walletconnect/ethereum-provider@2.17.0?bundle');
+    wcProvider = await EthereumProvider.init({
+      projectId: WALLETCONNECT_PROJECT_ID,
+      chains: [X1_CHAIN_ID_DEC],
+      optionalChains: [X1_CHAIN_ID_DEC],
+      rpcMap: { [X1_CHAIN_ID_DEC]: X1_RPC_URL },
+      showQrModal: true,
+      metadata: {
+        name: 'Spigot',
+        description: 'Pay-per-call settlement rails for APIs and AI agents on X1 EcoChain',
+        url: window.location.origin,
+        icons: [],
+      },
+    });
+    wcProvider.on('disconnect', () => window.location.reload());
+    await wcProvider.enable();
+    browserProvider = new ethers.BrowserProvider(wcProvider, { chainId: X1_CHAIN_ID_DEC, name: 'x1-maculatus' });
+    signer = await browserProvider.getSigner();
+    await finishConnect();
+  } catch (err) {
+    console.error(err);
+    toast(friendlyError(err), 'error');
+  }
+}
+
+async function finishConnect() {
+  signerContract = new ethers.Contract(CONTRACT_ADDRESS, METERLY_ABI, signer);
+  account = await signer.getAddress();
+  renderWalletArea();
+  refreshAccountPanel();
+  refreshMyServices();
+  toast('Wallet connected', 'success');
 }
 
 if (window.ethereum) {
