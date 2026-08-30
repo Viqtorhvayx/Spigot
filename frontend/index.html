@@ -2,59 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Verinode</title>
+  <title>Tipstream</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 3rem auto; padding: 0 1rem; color: #1a1a1a; }
-    button { padding: 0.6rem 1rem; margin: 0.25rem 0; border: 1px solid #1a1a1a; background: #fff; border-radius: 6px; cursor: pointer; }
-    button:hover:not(:disabled) { background: #f2f2f2; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    input { padding: 0.5rem; width: 100%; box-sizing: border-box; margin: 0.4rem 0; }
-    .card { border: 1px solid #e2e2e2; border-radius: 10px; padding: 1.2rem; margin: 1rem 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4rem; }
-    .dot.active { background: #1a9c4a; }
-    .dot.inactive { background: #c74; }
-    #log { white-space: pre-wrap; background: #f6f6f6; padding: 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.85rem; }
-    code { background: #f2f2f2; padding: 0.1rem 0.3rem; border-radius: 3px; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .gradient-bg { background: radial-gradient(circle at top left, #ecfdf5, #ffffff 55%); }
   </style>
 </head>
-<body>
-  <h1>Verinode</h1>
-  <p>
-    On-chain liveness attestation for X1 EcoChain nodes. Operators register and submit
-    periodic heartbeats — uptime becomes a verifiable on-chain record instead of a
-    self-reported claim.
-  </p>
+<body class="gradient-bg min-h-screen text-slate-900">
 
-  <button id="connectBtn">Connect Wallet</button>
-  <button id="addNetworkBtn">Add X1 EcoChain to MetaMask</button>
-  <p>Account: <span id="account">not connected</span></p>
-
-  <div class="card">
-    <h3>Your node</h3>
-    <div id="registerSection">
-      <input id="labelInput" placeholder="Node label, e.g. home-node-1" />
-      <button id="registerBtn">Register Node</button>
+  <header class="max-w-5xl mx-auto px-6 pt-10 pb-6 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">T</div>
+      <span class="font-extrabold text-lg tracking-tight">Tipstream</span>
     </div>
-    <p id="myStatus">connect wallet to check status</p>
-    <button id="heartbeatBtn" disabled>Submit Heartbeat</button>
-  </div>
+    <div class="flex items-center gap-2">
+      <button id="addNetworkBtn" class="hidden sm:inline-flex text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Add X1 EcoChain</button>
+      <button id="connectBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition">Connect Wallet</button>
+    </div>
+  </header>
 
-  <div class="card">
-    <h3>Network</h3>
-    <p><span id="operatorCount">–</span> registered operator(s)</p>
-    <button id="refreshBtn">Refresh</button>
-    <table>
-      <thead>
-        <tr><th>Status</th><th>Label</th><th>Operator</th><th>Heartbeats</th><th>Last seen</th></tr>
-      </thead>
-      <tbody id="operatorsTable"></tbody>
-    </table>
-  </div>
+  <section class="max-w-5xl mx-auto px-6 py-10 text-center">
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">Get tipped. Keep 97.5%.</h1>
+    <p class="mt-4 text-lg text-slate-600 max-w-xl mx-auto">
+      Instant, on-chain tips for creators on X1 EcoChain. Every tip splits automatically —
+      a 2.5% platform fee, the rest lands straight in your wallet.
+    </p>
+    <p class="mt-2 text-sm text-slate-400">
+      Connected account: <span id="account" class="font-mono">not connected</span>
+    </p>
+  </section>
 
-  <div id="log"></div>
+  <section class="max-w-5xl mx-auto px-6">
+    <div id="creatorPanel" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-10">
+      <div id="registerView">
+        <h2 class="font-bold text-lg">Become a creator</h2>
+        <p class="text-sm text-slate-500 mt-1 mb-4">Connect your wallet, then set up your page in one transaction.</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <input id="nameInput" placeholder="Your name" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          <input id="bioInput" placeholder="One-line bio" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+        </div>
+        <button id="registerBtn" class="mt-4 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Create my page</button>
+      </div>
+      <div id="myStatsView" class="hidden">
+        <h2 class="font-bold text-lg">Your page</h2>
+        <div class="grid sm:grid-cols-3 gap-4 mt-4">
+          <div class="bg-emerald-50 rounded-xl p-4">
+            <div class="text-xs uppercase tracking-wide text-emerald-700 font-medium">Total received</div>
+            <div id="myTotal" class="text-2xl font-extrabold text-emerald-900 mt-1">–</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4">
+            <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Tips received</div>
+            <div id="myTipCount" class="text-2xl font-extrabold text-slate-900 mt-1">–</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-4">
+            <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Platform fee</div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-1">2.5%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-bold text-lg">Discover creators</h2>
+      <button id="refreshBtn" class="text-sm text-slate-500 hover:text-slate-900 transition">Refresh</button>
+    </div>
+    <div id="creatorGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-16">
+      <p class="text-sm text-slate-400 col-span-full">Loading creators…</p>
+    </div>
+  </section>
+
+  <div id="log" class="max-w-5xl mx-auto px-6 pb-16 text-xs font-mono text-slate-400 whitespace-pre-wrap"></div>
+
+  <!-- Tip modal -->
+  <div id="tipModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center px-6 z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+      <h3 class="font-bold text-lg">Send a tip to <span id="tipModalName"></span></h3>
+      <input id="tipAmount" placeholder="Amount in X1T, e.g. 1" class="mt-4 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+      <input id="tipMessage" placeholder="Message (optional)" class="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+      <div class="flex gap-2 mt-4">
+        <button id="tipCancelBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+        <button id="tipSendBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Send tip</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
   <script src="app.js"></script>

@@ -1,5 +1,5 @@
 // Live on the Maculatus testnet — see ../README.md
-const CONTRACT_ADDRESS = '0xC76bC2E969803C059888218DB532DEa9B63a8D8E';
+const CONTRACT_ADDRESS = '0x634fC0f2613AB092aAA6f6cFF4b42f49F5eD32aF';
 
 const X1_TESTNET = {
   chainId: '0x2A1A', // 10778 in hex
@@ -10,20 +10,19 @@ const X1_TESTNET = {
 };
 
 const ABI = [
-  'function registerNode(string label) external',
-  'function heartbeat() external',
-  'function nodes(address) view returns (string label, uint256 registeredAt, uint256 lastHeartbeat, uint256 heartbeatCount)',
-  'function isActive(address) view returns (bool)',
-  'function operatorCount() view returns (uint256)',
-  'function getOperators() view returns (address[])',
-  'function MIN_INTERVAL() view returns (uint256)',
+  'function registerCreator(string name, string bio) external',
+  'function tip(address creator, string message) external payable',
+  'function creators(address) view returns (string name, string bio, uint256 registeredAt, uint256 totalReceived, uint256 tipCount)',
+  'function getCreators() view returns (address[])',
+  'function creatorCount() view returns (uint256)',
+  'function PLATFORM_FEE_BPS() view returns (uint256)',
 ];
 
 let account = null;
+let pendingTipTarget = null;
 
 const log = (msg) => {
-  const el = document.getElementById('log');
-  el.textContent += `${msg}\n`;
+  document.getElementById('log').textContent += `${msg}\n`;
 };
 
 const getProvider = () => {
@@ -38,72 +37,81 @@ const getReadContract = () => {
 
 const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-const timeAgo = (unixSeconds) => {
-  if (unixSeconds === 0n) return 'never';
-  const seconds = Math.floor(Date.now() / 1000) - Number(unixSeconds);
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  return `${Math.floor(seconds / 3600)}h ago`;
-};
-
-async function refreshNetwork() {
+async function refreshCreators() {
   try {
     const contract = getReadContract();
-    const operators = await contract.getOperators();
-    document.getElementById('operatorCount').textContent = operators.length;
+    const addresses = await contract.getCreators();
+    const grid = document.getElementById('creatorGrid');
 
-    const rows = await Promise.all(
-      operators.map(async (addr) => {
-        const [node, active] = await Promise.all([contract.nodes(addr), contract.isActive(addr)]);
-        return { addr, ...node, active };
-      })
-    );
-
-    const tbody = document.getElementById('operatorsTable');
-    tbody.innerHTML = rows
-      .map(
-        (r) => `
-      <tr>
-        <td><span class="dot ${r.active ? 'active' : 'inactive'}"></span>${r.active ? 'Active' : 'Inactive'}</td>
-        <td>${r.label}</td>
-        <td>${shortAddr(r.addr)}</td>
-        <td>${r.heartbeatCount}</td>
-        <td>${timeAgo(r.lastHeartbeat)}</td>
-      </tr>`
-      )
-      .join('');
-  } catch (err) {
-    log(`Error refreshing network: ${err.message}`);
-  }
-}
-
-async function refreshMyStatus() {
-  if (!account) return;
-  try {
-    const contract = getReadContract();
-    const node = await contract.nodes(account);
-    const minInterval = await contract.MIN_INTERVAL();
-
-    if (node.registeredAt === 0n) {
-      document.getElementById('myStatus').textContent = 'Not registered yet.';
-      document.getElementById('registerSection').style.display = 'block';
-      document.getElementById('heartbeatBtn').disabled = true;
+    if (addresses.length === 0) {
+      grid.innerHTML = '<p class="text-sm text-slate-400 col-span-full">No creators yet — be the first.</p>';
       return;
     }
 
-    document.getElementById('registerSection').style.display = 'none';
-    const active = await contract.isActive(account);
-    const nextEligible = node.lastHeartbeat + minInterval;
-    const nowSec = BigInt(Math.floor(Date.now() / 1000));
-    const canHeartbeatNow = nowSec >= nextEligible;
+    const creators = await Promise.all(
+      addresses.map(async (addr) => ({ addr, ...(await contract.creators(addr)) }))
+    );
 
-    document.getElementById('myStatus').textContent =
-      `Registered as "${node.label}" — ${node.heartbeatCount} heartbeat(s), ` +
-      `${active ? 'currently active' : 'inactive'}, last seen ${timeAgo(node.lastHeartbeat)}.`;
-    document.getElementById('heartbeatBtn').disabled = !canHeartbeatNow;
+    grid.innerHTML = creators
+      .map(
+        (c) => `
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">${c.name.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="font-semibold">${c.name}</div>
+            <div class="text-xs text-slate-400 font-mono">${shortAddr(c.addr)}</div>
+          </div>
+        </div>
+        <p class="text-sm text-slate-500 mt-3 flex-1">${c.bio || 'No bio yet.'}</p>
+        <div class="flex items-center justify-between mt-4 text-sm">
+          <span class="text-slate-500">${ethers.formatEther(c.totalReceived)} X1T · ${c.tipCount} tip(s)</span>
+          <button data-addr="${c.addr}" data-name="${c.name}" class="tipBtn text-sm font-medium px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Tip</button>
+        </div>
+      </div>`
+      )
+      .join('');
+
+    document.querySelectorAll('.tipBtn').forEach((btn) =>
+      btn.addEventListener('click', () => openTipModal(btn.dataset.addr, btn.dataset.name))
+    );
   } catch (err) {
-    log(`Error checking status: ${err.message}`);
+    log(`Error loading creators: ${err.message}`);
   }
+}
+
+async function refreshMyStats() {
+  if (!account) return;
+  try {
+    const contract = getReadContract();
+    const record = await contract.creators(account);
+
+    if (!record.name) {
+      document.getElementById('registerView').classList.remove('hidden');
+      document.getElementById('myStatsView').classList.add('hidden');
+      return;
+    }
+
+    document.getElementById('registerView').classList.add('hidden');
+    document.getElementById('myStatsView').classList.remove('hidden');
+    document.getElementById('myTotal').textContent = `${ethers.formatEther(record.totalReceived)} X1T`;
+    document.getElementById('myTipCount').textContent = record.tipCount.toString();
+  } catch (err) {
+    log(`Error checking your page: ${err.message}`);
+  }
+}
+
+function openTipModal(addr, name) {
+  pendingTipTarget = addr;
+  document.getElementById('tipModalName').textContent = name;
+  document.getElementById('tipAmount').value = '';
+  document.getElementById('tipMessage').value = '';
+  document.getElementById('tipModal').classList.remove('hidden');
+}
+
+function closeTipModal() {
+  pendingTipTarget = null;
+  document.getElementById('tipModal').classList.add('hidden');
 }
 
 document.getElementById('connectBtn').addEventListener('click', async () => {
@@ -113,7 +121,7 @@ document.getElementById('connectBtn').addEventListener('click', async () => {
     account = accounts[0];
     document.getElementById('account').textContent = account;
     log(`Connected: ${account}`);
-    await refreshMyStatus();
+    await refreshMyStats();
   } catch (err) {
     log(`Error: ${err.message}`);
   }
@@ -132,39 +140,48 @@ document.getElementById('addNetworkBtn').addEventListener('click', async () => {
 document.getElementById('registerBtn').addEventListener('click', async () => {
   try {
     if (!account) throw new Error('Connect your wallet first.');
-    const label = document.getElementById('labelInput').value.trim();
-    if (!label) throw new Error('Enter a node label.');
+    const name = document.getElementById('nameInput').value.trim();
+    const bio = document.getElementById('bioInput').value.trim();
+    if (!name) throw new Error('Enter a name.');
+
     const provider = getProvider();
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.registerNode(label);
-    log(`Submitted registerNode tx: ${tx.hash}`);
+    const tx = await contract.registerCreator(name, bio);
+    log(`Submitted registerCreator tx: ${tx.hash}`);
     await tx.wait();
     log('Registered.');
-    await refreshMyStatus();
-    await refreshNetwork();
+    await refreshMyStats();
+    await refreshCreators();
   } catch (err) {
     log(`Error: ${err.message}`);
   }
 });
 
-document.getElementById('heartbeatBtn').addEventListener('click', async () => {
+document.getElementById('tipCancelBtn').addEventListener('click', closeTipModal);
+
+document.getElementById('tipSendBtn').addEventListener('click', async () => {
   try {
     if (!account) throw new Error('Connect your wallet first.');
+    const amount = document.getElementById('tipAmount').value.trim();
+    const message = document.getElementById('tipMessage').value.trim();
+    if (!amount || Number(amount) <= 0) throw new Error('Enter a tip amount.');
+
     const provider = getProvider();
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.heartbeat();
-    log(`Submitted heartbeat tx: ${tx.hash}`);
+    const tx = await contract.tip(pendingTipTarget, message, { value: ethers.parseEther(amount) });
+    log(`Submitted tip tx: ${tx.hash}`);
+    closeTipModal();
     await tx.wait();
-    log('Heartbeat confirmed.');
-    await refreshMyStatus();
-    await refreshNetwork();
+    log('Tip confirmed.');
+    await refreshCreators();
+    await refreshMyStats();
   } catch (err) {
     log(`Error: ${err.message}`);
   }
 });
 
-document.getElementById('refreshBtn').addEventListener('click', refreshNetwork);
+document.getElementById('refreshBtn').addEventListener('click', refreshCreators);
 
-refreshNetwork();
+refreshCreators();

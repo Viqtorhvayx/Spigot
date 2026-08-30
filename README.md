@@ -1,39 +1,34 @@
-# Verinode
+# Tipstream
 
-On-chain liveness attestation for X1 EcoChain node operators. Instead of self-reported uptime claims, operators register and submit periodic on-chain heartbeats — anyone can verify who's actually running a live node, and for how long, directly from the chain.
+Creator tipping on X1 EcoChain. A fan sends a tip, the contract splits it automatically — a 2.5% platform fee, the rest lands straight in the creator's wallet, instantly and verifiably on-chain.
 
-**Live on the Maculatus testnet:** [`0xC76bC2E969803C059888218DB532DEa9B63a8D8E`](https://maculatus-scan.x1eco.com/address/0xC76bC2E969803C059888218DB532DEa9B63a8D8E)
+**Live on the Maculatus testnet:** [`0x634fC0f2613AB092aAA6f6cFF4b42f49F5eD32aF`](https://maculatus-scan.x1eco.com/address/0x634fC0f2613AB092aAA6f6cFF4b42f49F5eD32aF)
 
-**Live dashboard:** [x1-forge-mu.vercel.app](https://x1-forge-mu.vercel.app)
+The fee split has been verified live, not just in local tests: a real creator registered, a real 1 X1T tip was sent from a separate wallet, and the creator's balance increased by exactly `0.975 X1T` — matching the 2.5% fee precisely, confirmed both by wallet balance and on-chain contract state (`totalReceived`).
 
-The full flow has been exercised live against this deployment, not just in local tests: a node registered (`registerNode`), submitted a heartbeat (`heartbeat`), was confirmed `isActive`, and a second immediate heartbeat correctly reverted with `"Heartbeat too soon"` — confirming the cooldown works on-chain.
+## Why this
 
-## Why this, and why X1 EcoChain specifically
-
-X1 EcoChain's entire pitch is physical decentralization through thousands of low-power nodes — but nothing in its current ecosystem lets anyone verify that claim on-chain. Existing node projects (Fastnode, Nodes.garden, xNode) are generic node-hosting/deployment tooling; none of them produce a verifiable, on-chain record of which nodes are actually live. Verinode is that missing piece: a minimal attestation layer any node operator (or any project that wants to prove infrastructure uptime) can adopt.
-
-**Honest scope note:** this proves the protocol works end-to-end — contract, agent script, and dashboard all functioning against the live chain. It does not yet have real X1Node operators running it; that adoption is a go-to-market question, not something faked here. The self-test above uses one wallet acting as a demo operator.
+Grant reviewers reward two things above all: real users and real revenue. Tipstream has both by construction — the user is anyone who wants to support a creator with money (a far bigger, more obvious audience than infrastructure operators or developers), and the revenue is a literal fee baked into every transaction, not a hypothetical future business model. It's honest about existing competition (LoopX already does payments/subscriptions on X1 EcoChain) — the bet here is on better execution of a proven mechanic, not on finding empty ecosystem space.
 
 ## Contract
 
-`contracts/Verinode.sol`:
+`contracts/Tipstream.sol`:
 
-- `registerNode(string label)` — one-time registration per address.
-- `heartbeat()` — records liveness; reverts if called before `MIN_INTERVAL` (30 minutes) has elapsed since the last one.
-- `isActive(address)` — true if the operator's last heartbeat is within `ACTIVE_WINDOW` (2 hours).
-- `getOperators()` / `operatorCount()` — for building dashboards over the full registered set.
+- `registerCreator(string name, string bio)` — one-time page setup per address.
+- `tip(address creator, string message) payable` — splits `msg.value`: 2.5% to the immutable `feeRecipient`, 97.5% straight to the creator, both sent in the same transaction.
+- `creators(address)` — public getter for a creator's profile and stats (`totalReceived`, `tipCount`).
+- `getCreators()` / `creatorCount()` — for building the discovery grid.
 
-5 tests cover registration (including duplicate rejection), heartbeat cooldown enforcement, the active/inactive transition over time, and multi-operator tracking.
+6 tests cover registration + duplicate rejection, tipping an unregistered address, a zero-value tip, the exact fee split (verified with `changeEtherBalances` across fan/creator/fee recipient), multi-tip accumulation, and multi-creator tracking.
 
-## The agent
-
-`scripts/agent.js` is the piece a real node operator would run — a plain Node script (no Hardhat dependency) that registers once, then submits a heartbeat every 30 minutes for as long as it runs. This is the actual DePIN tooling: something you'd deploy alongside the node itself (cron job, systemd service, or a long-lived process).
+## Setup
 
 ```bash
 npm install
-cp .env.example .env   # PRIVATE_KEY, CONTRACT_ADDRESS, NODE_LABEL
-npm run agent
+cp .env.example .env   # add your PRIVATE_KEY
 ```
+
+Get testnet X1T via the Discord faucet (`/faucet <address>` in `#faucet`, 100 X1T per claim, once per 24h).
 
 ## Compile, test, deploy
 
@@ -43,9 +38,17 @@ npm run test
 npm run deploy:testnet
 ```
 
+The deploy script sets the deploying wallet as the fee recipient — swap in a dedicated treasury address for a real launch.
+
 ## Frontend
 
-`frontend/index.html` — a dashboard showing every registered operator, their live/inactive status, heartbeat count, and last-seen time, plus a self-serve panel to register and heartbeat from a connected wallet. Already pointed at the live contract above, and deployed at [x1-forge-mu.vercel.app](https://x1-forge-mu.vercel.app).
+`frontend/index.html` — a real designed UI (Tailwind, not unstyled HTML): a hero, a "become a creator" panel that becomes a stats panel once registered, and a discovery grid of every creator with a one-click tip modal. Already pointed at the live contract above.
+
+## Honest limitations (read before pitching this)
+
+- **Push payments**: the contract sends funds directly via `.call{value}()` during `tip()`. This is simple and instantly demoable, but a production version should consider a pull-payment (withdraw) pattern so one bad actor's `receive()` reverting can't block a specific creator's tips.
+- **No content-gating**: this is tipping only — no paywalled content, subscriptions, or perks. That's a deliberate v1 scope cut (secure content-gating needs real infrastructure), not an oversight.
+- **LoopX already exists** in this space on X1 EcoChain. This project competes on execution, not on being first — be upfront about that in any pitch rather than implying it's unclaimed territory.
 
 ## Network reference
 

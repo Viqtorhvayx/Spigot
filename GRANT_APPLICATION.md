@@ -1,34 +1,36 @@
-# X1 EcoChain Ecosystem Grants — Application Draft (Verinode)
+# X1 EcoChain Ecosystem Grants — Application Draft (Tipstream)
 
 Draft answers for the [X1 EcoChain Grant Program](https://grant.x1ecochain.com/) application (submitted via [this Airtable form](https://airtable.com/appMvL5KlSmE9J3I4/paglccI2kQaFErlF3/form)). Fill in the bracketed `[ ]` fields before submitting.
 
-**Important — this is the real, official $5M grant program**, not an informal one: it requires **KYB/KYC and sanctions screening**, a **pitch deck**, and a credible **90–120 day delivery plan**. Read that as: don't submit this until you can actually commit to executing on the plan below, since milestone-based funding means you're on the hook for real deliverables against a real timeline.
+**Important — this is the real, official $5M grant program**, not an informal one: it requires **KYB/KYC and sanctions screening**, a **pitch deck**, and a credible **90–120 day delivery plan**. Don't submit until you can actually commit to executing the plan below.
+
+**Read this before submitting:** [`LoopX`](https://x.com/LoopXPay) already operates in this space on X1 EcoChain — "P2P payments, subscriptions & creator monetization." This application does not claim Tipstream is unclaimed territory. The pitch is narrower and more honest: a single mechanic (tipping with a transparent on-chain fee split) executed well, not a broad payments platform. Say this plainly to reviewers rather than letting them discover LoopX themselves and wonder why it wasn't mentioned.
 
 ---
 
 **Project Name**
-Verinode
+Tipstream
 
 **Project Type**
-DePIN & Node Pilots / Infrastructure
+Consumer / Payments
 
 **Project Abstract and Objective**
-Verinode is an on-chain liveness attestation protocol for X1 EcoChain node operators. X1 EcoChain's core differentiator is physical decentralization across thousands of low-power nodes — but nothing in the ecosystem today lets anyone verify that claim on-chain; existing node projects (Fastnode, Nodes.garden, xNode) provide generic node-hosting and deployment tooling, not proof of live activity. Verinode closes that gap: node operators register once, then submit periodic on-chain heartbeats via a lightweight agent script; a public dashboard shows exactly which nodes are live, for how long, and their heartbeat history — all independently verifiable on-chain rather than self-reported. The objective is turning X1 EcoChain's "8,500+ low-power nodes" narrative into something anyone can audit, and giving the ecosystem a reusable primitive: any project needing to prove infrastructure uptime (node operators, oracle networks, relayers) can adopt the same contract.
+Tipstream is a creator tipping protocol for X1 EcoChain: a fan sends a tip, and the contract automatically splits it — a 2.5% platform fee, 97.5% straight to the creator, both in the same transaction. The objective is a genuinely simple, high-conversion primitive (one function call, no subscription setup, no content-gating complexity) that's actually easy for a creator to adopt and a fan to use, monetized transparently through a fee that's visible on-chain rather than a black-box business model. X1 EcoChain's low fees make small tips (amounts uneconomical on Ethereum mainnet after gas) genuinely viable, which is the real differentiator versus doing this on more expensive chains.
 
 **Technical Roadmap**
-- Phase 1 (already complete — see Current Development Stage): core attestation contract, agent script, and dashboard, deployed and exercised live on the Maculatus testnet.
-- Phase 2 (Days 1–30 of the grant period): security hardening and a second attestation dimension — self-reported energy-consumption data per heartbeat (clearly labeled as self-attested, not hardware-verified, until an oracle/hardware integration exists), plus a public API for the dashboard data.
-- Phase 3 (Days 30–75): outreach to real X1Node operators to adopt the agent script; a "verified operator" badge/leaderboard to incentivize adoption; integration guide for other X1 EcoChain projects wanting to use the attestation primitive.
-- Phase 4 (Days 75–120): mainnet deployment (pending X1 EcoChain mainnet availability) and a retrospective on real adoption metrics (registered operators, heartbeat volume, uptime data collected).
+- Phase 1 (already complete — see Current Development Stage): core tipping contract, creator registry, and discovery/tip UI, deployed and exercised live on the Maculatus testnet with a verified fee split.
+- Phase 2 (Days 1–30): move from push payments to a pull/withdraw pattern for safety at scale; add a lightweight creator dashboard (earnings over time, top supporters); basic spam/abuse mitigation on the discovery grid.
+- Phase 3 (Days 30–75): real creator outreach and onboarding — the actual go-to-market test of whether this mechanic gets adopted; social sharing for creator pages; optional recurring tips (lightweight subscription primitive, still simple).
+- Phase 4 (Days 75–120): mainnet deployment (pending X1 EcoChain mainnet availability) and a retrospective on real adoption metrics (registered creators, tip volume, fee revenue generated).
 
 **Project website**
-Repo: https://github.com/Viqtorhvayx/Verinode — Live dashboard: https://x1-forge-mu.vercel.app
+[URL — set once repo/dashboard are public]
 
 **Project X (Twitter)**
 [@handle]
 
 **Category**
-DePIN & Node Pilots — projects deploying home/edge nodes generating verifiable on-chain activity with energy-efficient operations.
+Consumer/Social/Gaming — user-facing products with growing engagement and high volumes of on-chain transactions.
 
 **Previous Funding**
 None
@@ -37,16 +39,16 @@ None
 [Program range is $10,000–$100,000 per project — set based on the scope you can actually commit to for the 90–120 day plan above]
 
 **90–120 Day Delivery Plan**
-See Technical Roadmap above. Milestones and dates need to be finalized with real target dates before submission — the program requires a credible, specific plan, not placeholders.
+See Technical Roadmap above. Milestones and dates need real target dates before submission.
 
 **Current Development Stage**
-Phase 1 complete and verified live: `Verinode.sol` deployed to the Maculatus testnet at [`0xC76bC2E969803C059888218DB532DEa9B63a8D8E`](https://maculatus-scan.x1eco.com/address/0xC76bC2E969803C059888218DB532DEa9B63a8D8E). The full flow has been exercised against the live deployment — not just local tests: `registerNode` succeeded, `heartbeat` succeeded and was confirmed `isActive`, and a second immediate `heartbeat` correctly reverted with `"Heartbeat too soon"`, proving the cooldown logic on-chain. The agent script (`scripts/agent.js`) and dashboard (`frontend/`) are both built and read/write against this live contract correctly.
+Phase 1 complete and verified live: `Tipstream.sol` deployed to the Maculatus testnet at [`0x634fC0f2613AB092aAA6f6cFF4b42f49F5eD32aF`](https://maculatus-scan.x1eco.com/address/0x634fC0f2613AB092aAA6f6cFF4b42f49F5eD32aF). The fee split has been verified against the live deployment, not just local tests: a creator registered from one wallet, a 1 X1T tip was sent from a separate wallet, and the creator's balance increased by exactly `0.975 X1T` (97.5%) — confirmed both by wallet balance change and on-chain contract state. 6/6 local tests passing, including exact balance-delta checks on the fee split.
 
 **Duration working on the project**
 [fill in actual]
 
 **Project live status**
-Contract and dashboard live on testnet (https://x1-forge-mu.vercel.app); no real X1Node operators onboarded yet (that's the Phase 3 ask).
+Contract and UI live on testnet; zero real creators onboarded yet (that's the Phase 3 ask).
 
 ---
 
@@ -69,19 +71,19 @@ victorolagbaye679@gmail.com
 [e.g. 1 (solo)]
 
 **KYB/KYC**
-Required before any agreement is signed, per the program's stated terms. Not started — budget time for this before expecting funds to move.
+Required before any agreement is signed. Not started — budget time for this before expecting funds to move.
 
 **How did you hear about Grant Program?**
 [e.g. X1 EcoChain documentation / grant.x1ecochain.com]
 
 **Are there other details you'd like to highlight?**
-Verinode is designed as ecosystem infrastructure, not a single-purpose app — the attestation contract is a reusable primitive other X1 EcoChain projects (oracles, relayers, other DePIN pilots) could adopt for their own on-chain uptime proofs, extending its value beyond node operators specifically.
+Tipstream is deliberately narrow in v1 (tipping only, no content-gating, no subscriptions yet) to ship something simple, secure, and genuinely usable rather than a sprawling payments platform. LoopX already exists in this broader space; the differentiation is depth of execution on one mechanic rather than breadth.
 
 ---
 
 ## Notes for the applicant (not part of the form)
 
-- **This is a bigger commitment than a typical hackathon submission.** KYB/KYC, a pitch deck, and a 90–120 day delivery plan mean the grant committee expects you to actually execute — budget real time before submitting, not just for the application itself.
-- No claim of real-world adoption has been made anywhere in this draft — only that the protocol works, verified against the live chain. Keep it that way; claiming operator adoption that doesn't exist would be caught immediately by anyone checking the dashboard.
-- You'll want an actual pitch deck (slides) — this markdown draft is not a substitute for the "~8 minute application with your deck" the program asks for. I can help build slide content once the milestone dates and funding ask are set.
-- The repo is public at https://github.com/Viqtorhvayx/Verinode and the dashboard is live at https://x1-forge-mu.vercel.app — reviewers can inspect both directly.
+- **Be upfront about LoopX in the actual pitch deck**, not just here. A reviewer who finds it themselves and sees no mention of it will read that as either not having done the research or hoping they wouldn't notice — both worse than addressing it directly.
+- No claim of real creator adoption has been made anywhere in this draft — only that the mechanic works, verified against the live chain with two distinct wallets. Keep it that way.
+- The contract currently uses push payments (`.call{value}()}` inside `tip()`), flagged as a known limitation in the README. Worth fixing (pull/withdraw pattern) before any real money at scale flows through it — flagged as Phase 2 work, not something to gloss over in the pitch.
+- Publish the repo publicly and deploy the frontend before submitting — reviewers will check for a real, inspectable, live product.
