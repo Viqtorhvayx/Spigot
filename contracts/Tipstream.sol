@@ -2,14 +2,16 @@
 pragma solidity ^0.8.24;
 
 /// @notice Creator tipping for X1 EcoChain. Every tip splits automatically:
-/// a fixed platform fee to the protocol treasury, the rest straight to the
-/// creator — instantly, verifiably, on-chain.
+/// a fixed platform fee to the protocol treasury, the rest to the creator.
+/// Funds accumulate as a withdrawable balance rather than being pushed
+/// immediately, so one recipient's misbehaving `receive()` can never block
+/// anyone else's tip.
 contract Tipstream {
     struct Creator {
         string name;
         string bio;
         uint256 registeredAt;
-        uint256 totalReceived; // net amount received, after fee
+        uint256 totalReceived; // lifetime net amount attributed to this creator
         uint256 tipCount;
     }
 
@@ -18,9 +20,11 @@ contract Tipstream {
 
     mapping(address => Creator) public creators;
     address[] public creatorList;
+    mapping(address => uint256) public pendingWithdrawals;
 
     event CreatorRegistered(address indexed creator, string name, uint256 timestamp);
-    event TipSent(address indexed from, address indexed to, uint256 payout, uint256 fee, string message);
+    event TipSent(address indexed from, address indexed to, uint256 payout, uint256 fee, string message, uint256 timestamp);
+    event Withdrawn(address indexed account, uint256 amount);
 
     constructor(address _feeRecipient) {
         require(_feeRecipient != address(0), "Invalid fee recipient");
@@ -53,12 +57,21 @@ contract Tipstream {
         c.totalReceived += payout;
         c.tipCount += 1;
 
-        emit TipSent(msg.sender, creator, payout, fee, message);
+        pendingWithdrawals[creator] += payout;
+        pendingWithdrawals[feeRecipient] += fee;
 
-        (bool sentCreator, ) = payable(creator).call{value: payout}("");
-        require(sentCreator, "Payout to creator failed");
-        (bool sentFee, ) = payable(feeRecipient).call{value: fee}("");
-        require(sentFee, "Fee transfer failed");
+        emit TipSent(msg.sender, creator, payout, fee, message, block.timestamp);
+    }
+
+    function withdraw() external {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingWithdrawals[msg.sender] = 0;
+        emit Withdrawn(msg.sender, amount);
+
+        (bool sent, ) = payable(msg.sender).call{value: amount}("");
+        require(sent, "Withdraw failed");
     }
 
     function getCreators() external view returns (address[] memory) {

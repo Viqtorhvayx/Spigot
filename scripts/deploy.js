@@ -11,7 +11,10 @@ async function main() {
   await tipstream.waitForDeployment();
 
   const address = await tipstream.getAddress();
+  const deployTx = tipstream.deploymentTransaction();
+  const receipt = await deployTx.wait();
   console.log(`Tipstream deployed to: ${address}`);
+  console.log(`Deployment block: ${receipt.blockNumber}`);
   console.log(`Fee recipient: ${feeRecipient}`);
   console.log(`View it on the explorer: https://maculatus-scan.x1eco.com/address/${address}`);
 }

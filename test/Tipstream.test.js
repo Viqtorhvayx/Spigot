@@ -42,7 +42,7 @@ describe('Tipstream', function () {
     ).to.be.revertedWith('Tip must be > 0');
   });
 
-  it('splits a tip between the creator and the platform fee recipient', async function () {
+  it('splits a tip into pending withdrawals for the creator and fee recipient', async function () {
     const { tipstream, feeRecipient, creator, fan } = await deployFixture();
     await tipstream.connect(creator).registerCreator('Ada', 'bio');
 
@@ -50,29 +50,46 @@ describe('Tipstream', function () {
     const expectedFee = (tipAmount * 250n) / 10000n; // 2.5%
     const expectedPayout = tipAmount - expectedFee;
 
+    // Tipping moves no funds directly — it only credits pending withdrawals.
     await expect(
       tipstream.connect(fan).tip(creator.address, 'gm!', { value: tipAmount })
-    ).to.changeEtherBalances(
-      [fan, creator, feeRecipient],
-      [-tipAmount, expectedPayout, expectedFee]
-    );
+    ).to.changeEtherBalances([fan, creator, feeRecipient], [-tipAmount, 0, 0]);
+
+    expect(await tipstream.pendingWithdrawals(creator.address)).to.equal(expectedPayout);
+    expect(await tipstream.pendingWithdrawals(feeRecipient.address)).to.equal(expectedFee);
 
     const record = await tipstream.creators(creator.address);
     expect(record.totalReceived).to.equal(expectedPayout);
     expect(record.tipCount).to.equal(1);
   });
 
-  it('accumulates stats across multiple tips from different fans', async function () {
+  it('lets a creator withdraw their pending balance, and zeroes it after', async function () {
+    const { tipstream, creator, fan } = await deployFixture();
+    await tipstream.connect(creator).registerCreator('Ada', 'bio');
+
+    const tipAmount = ethers.parseEther('10');
+    const expectedPayout = tipAmount - (tipAmount * 250n) / 10000n;
+    await tipstream.connect(fan).tip(creator.address, 'gm!', { value: tipAmount });
+
+    await expect(tipstream.connect(creator).withdraw())
+      .to.changeEtherBalance(creator, expectedPayout, { includeFee: false });
+
+    expect(await tipstream.pendingWithdrawals(creator.address)).to.equal(0);
+    await expect(tipstream.connect(creator).withdraw()).to.be.revertedWith('Nothing to withdraw');
+  });
+
+  it('accumulates stats and pending balance across multiple tips from different fans', async function () {
     const { tipstream, creator, fan, otherFan } = await deployFixture();
     await tipstream.connect(creator).registerCreator('Ada', 'bio');
 
     await tipstream.connect(fan).tip(creator.address, 'first', { value: ethers.parseEther('1') });
     await tipstream.connect(otherFan).tip(creator.address, 'second', { value: ethers.parseEther('2') });
 
-    const record = await tipstream.creators(creator.address);
     const expectedTotal = ethers.parseEther('3') - (ethers.parseEther('3') * 250n) / 10000n;
+    const record = await tipstream.creators(creator.address);
     expect(record.totalReceived).to.equal(expectedTotal);
     expect(record.tipCount).to.equal(2);
+    expect(await tipstream.pendingWithdrawals(creator.address)).to.equal(expectedTotal);
   });
 
   it('tracks multiple creators via getCreators', async function () {

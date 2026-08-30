@@ -15,65 +15,118 @@
 <body class="gradient-bg min-h-screen text-slate-900">
 
   <header class="max-w-5xl mx-auto px-6 pt-10 pb-6 flex items-center justify-between">
-    <div class="flex items-center gap-2">
+    <a href="./" class="flex items-center gap-2">
       <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">T</div>
       <span class="font-extrabold text-lg tracking-tight">Tipstream</span>
-    </div>
+    </a>
     <div class="flex items-center gap-2">
       <button id="addNetworkBtn" class="hidden sm:inline-flex text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Add X1 EcoChain</button>
       <button id="connectBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition">Connect Wallet</button>
     </div>
   </header>
 
-  <section class="max-w-5xl mx-auto px-6 py-10 text-center">
-    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">Get tipped. Keep 97.5%.</h1>
-    <p class="mt-4 text-lg text-slate-600 max-w-xl mx-auto">
-      Instant, on-chain tips for creators on X1 EcoChain. Every tip splits automatically —
-      a 2.5% platform fee, the rest lands straight in your wallet.
-    </p>
-    <p class="mt-2 text-sm text-slate-400">
-      Connected account: <span id="account" class="font-mono">not connected</span>
-    </p>
+  <p class="max-w-5xl mx-auto px-6 text-sm text-slate-400 -mt-2">
+    Connected account: <span id="account" class="font-mono">not connected</span>
+  </p>
+
+  <!-- Withdraw widget: shown for any connected wallet with a pending balance, creator or treasury -->
+  <section id="withdrawWidget" class="hidden max-w-5xl mx-auto px-6 mt-4">
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs uppercase tracking-wide text-amber-700 font-medium">Withdrawable</div>
+        <div id="withdrawAmount" class="text-xl font-extrabold text-amber-900">–</div>
+      </div>
+      <button id="withdrawBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition" disabled>Withdraw</button>
+    </div>
   </section>
 
-  <section class="max-w-5xl mx-auto px-6">
-    <div id="creatorPanel" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-10">
-      <div id="registerView">
-        <h2 class="font-bold text-lg">Become a creator</h2>
-        <p class="text-sm text-slate-500 mt-1 mb-4">Connect your wallet, then set up your page in one transaction.</p>
-        <div class="grid sm:grid-cols-2 gap-3">
-          <input id="nameInput" placeholder="Your name" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-          <input id="bioInput" placeholder="One-line bio" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+  <!-- ===================== DISCOVER VIEW ===================== -->
+  <div id="discoverView">
+    <section class="max-w-5xl mx-auto px-6 py-10 text-center">
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">Get tipped. Keep 97.5%.</h1>
+      <p class="mt-4 text-lg text-slate-600 max-w-xl mx-auto">
+        Instant, on-chain tips for creators on X1 EcoChain. Every tip splits automatically —
+        a 2.5% platform fee, the rest lands straight in your wallet.
+      </p>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6">
+      <div id="creatorPanel" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-10">
+        <div id="registerView">
+          <h2 class="font-bold text-lg">Become a creator</h2>
+          <p class="text-sm text-slate-500 mt-1 mb-4">Connect your wallet, then set up your page in one transaction.</p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <input id="nameInput" placeholder="Your name" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            <input id="bioInput" placeholder="One-line bio" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          </div>
+          <button id="registerBtn" class="mt-4 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Create my page</button>
         </div>
-        <button id="registerBtn" class="mt-4 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Create my page</button>
+        <div id="myStatsView" class="hidden">
+          <h2 class="font-bold text-lg">Your page</h2>
+          <div class="grid sm:grid-cols-3 gap-4 mt-4">
+            <div class="bg-emerald-50 rounded-xl p-4">
+              <div class="text-xs uppercase tracking-wide text-emerald-700 font-medium">Total received</div>
+              <div id="myTotal" class="text-2xl font-extrabold text-emerald-900 mt-1">–</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Tips received</div>
+              <div id="myTipCount" class="text-2xl font-extrabold text-slate-900 mt-1">–</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4">
+              <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Platform fee</div>
+              <div class="text-2xl font-extrabold text-slate-900 mt-1">2.5%</div>
+            </div>
+          </div>
+          <div class="mt-4 flex items-center gap-2">
+            <input id="myShareLink" readonly class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono bg-slate-50 text-slate-500" />
+            <button id="copyShareLinkBtn" class="text-sm font-medium px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Copy link</button>
+          </div>
+        </div>
       </div>
-      <div id="myStatsView" class="hidden">
-        <h2 class="font-bold text-lg">Your page</h2>
-        <div class="grid sm:grid-cols-3 gap-4 mt-4">
+
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg">Discover creators</h2>
+        <button id="refreshBtn" class="text-sm text-slate-500 hover:text-slate-900 transition">Refresh</button>
+      </div>
+      <div id="creatorGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <p class="text-sm text-slate-400 col-span-full">Loading creators…</p>
+      </div>
+
+      <h2 class="font-bold text-lg mb-4">Recent activity</h2>
+      <div id="activityFeed" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 mb-16">
+        <p class="text-sm text-slate-400 p-5">Loading…</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== CREATOR PROFILE VIEW ===================== -->
+  <div id="profileView" class="hidden">
+    <section class="max-w-3xl mx-auto px-6 py-10">
+      <a href="./" class="text-sm text-slate-500 hover:text-slate-900 transition">&larr; All creators</a>
+      <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm mt-4 text-center">
+        <div id="profileAvatar" class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-2xl mx-auto">?</div>
+        <h1 id="profileName" class="text-2xl font-extrabold mt-4">–</h1>
+        <p id="profileAddr" class="text-xs text-slate-400 font-mono mt-1">–</p>
+        <p id="profileBio" class="text-slate-600 mt-3">–</p>
+        <div class="grid grid-cols-2 gap-4 mt-6 max-w-xs mx-auto">
           <div class="bg-emerald-50 rounded-xl p-4">
             <div class="text-xs uppercase tracking-wide text-emerald-700 font-medium">Total received</div>
-            <div id="myTotal" class="text-2xl font-extrabold text-emerald-900 mt-1">–</div>
+            <div id="profileTotal" class="text-xl font-extrabold text-emerald-900 mt-1">–</div>
           </div>
           <div class="bg-slate-50 rounded-xl p-4">
-            <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Tips received</div>
-            <div id="myTipCount" class="text-2xl font-extrabold text-slate-900 mt-1">–</div>
-          </div>
-          <div class="bg-slate-50 rounded-xl p-4">
-            <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Platform fee</div>
-            <div class="text-2xl font-extrabold text-slate-900 mt-1">2.5%</div>
+            <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Tips</div>
+            <div id="profileTipCount" class="text-xl font-extrabold text-slate-900 mt-1">–</div>
           </div>
         </div>
+        <button id="profileTipBtn" class="mt-6 text-sm font-medium px-6 py-3 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Send a tip</button>
       </div>
-    </div>
 
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-bold text-lg">Discover creators</h2>
-      <button id="refreshBtn" class="text-sm text-slate-500 hover:text-slate-900 transition">Refresh</button>
-    </div>
-    <div id="creatorGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-16">
-      <p class="text-sm text-slate-400 col-span-full">Loading creators…</p>
-    </div>
-  </section>
+      <h2 class="font-bold text-lg mt-10 mb-4">Recent tips</h2>
+      <div id="profileFeed" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100">
+        <p class="text-sm text-slate-400 p-5">Loading…</p>
+      </div>
+    </section>
+  </div>
 
   <div id="log" class="max-w-5xl mx-auto px-6 pb-16 text-xs font-mono text-slate-400 whitespace-pre-wrap"></div>
 
