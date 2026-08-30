@@ -185,4 +185,143 @@ describe('Tipstream', function () {
     expect(list).to.deep.equal([creator.address, otherFan.address]);
     expect(await tipstream.creatorCount()).to.equal(2);
   });
+
+  describe('displayNames', function () {
+    it('lets any address, not just creators, set a display name', async function () {
+      const { tipstream, fan } = await deployFixture();
+      await expect(tipstream.connect(fan).setDisplayName('Fan Fave'))
+        .to.emit(tipstream, 'DisplayNameSet')
+        .withArgs(fan.address, 'Fan Fave');
+      expect(await tipstream.displayNames(fan.address)).to.equal('Fan Fave');
+    });
+
+    it('rejects a display name over the length limit', async function () {
+      const { tipstream, fan } = await deployFixture();
+      await expect(
+        tipstream.connect(fan).setDisplayName('x'.repeat(65))
+      ).to.be.revertedWithCustomError(tipstream, 'NameTooLong');
+    });
+  });
+
+  describe('following', function () {
+    it('lets a fan follow and unfollow a creator, updating followerCount', async function () {
+      const { tipstream, creator, fan } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+
+      await expect(tipstream.connect(fan).follow(creator.address))
+        .to.emit(tipstream, 'Followed')
+        .withArgs(fan.address, creator.address);
+      expect(await tipstream.isFollowing(fan.address, creator.address)).to.equal(true);
+      expect((await tipstream.creators(creator.address)).followerCount).to.equal(1);
+
+      await expect(tipstream.connect(fan).unfollow(creator.address))
+        .to.emit(tipstream, 'Unfollowed')
+        .withArgs(fan.address, creator.address);
+      expect(await tipstream.isFollowing(fan.address, creator.address)).to.equal(false);
+      expect((await tipstream.creators(creator.address)).followerCount).to.equal(0);
+    });
+
+    it('rejects following an unregistered address, yourself, or twice', async function () {
+      const { tipstream, creator, fan, otherFan } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+
+      await expect(
+        tipstream.connect(fan).follow(otherFan.address)
+      ).to.be.revertedWithCustomError(tipstream, 'CreatorNotRegistered');
+
+      await expect(
+        tipstream.connect(creator).follow(creator.address)
+      ).to.be.revertedWithCustomError(tipstream, 'CannotFollowSelf');
+
+      await tipstream.connect(fan).follow(creator.address);
+      await expect(
+        tipstream.connect(fan).follow(creator.address)
+      ).to.be.revertedWithCustomError(tipstream, 'AlreadyFollowing');
+    });
+
+    it('rejects unfollowing when not currently following', async function () {
+      const { tipstream, creator, fan } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+      await expect(
+        tipstream.connect(fan).unfollow(creator.address)
+      ).to.be.revertedWithCustomError(tipstream, 'NotFollowing');
+    });
+  });
+
+  describe('goals', function () {
+    it('lets a registered creator set and clear a funding goal', async function () {
+      const { tipstream, creator } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+
+      const target = ethers.parseEther('100');
+      await expect(tipstream.connect(creator).setGoal(target, 'New microphone'))
+        .to.emit(tipstream, 'GoalSet')
+        .withArgs(creator.address, target, 'New microphone');
+
+      let record = await tipstream.creators(creator.address);
+      expect(record.goalTarget).to.equal(target);
+      expect(record.goalDescription).to.equal('New microphone');
+
+      await tipstream.connect(creator).setGoal(0, '');
+      record = await tipstream.creators(creator.address);
+      expect(record.goalTarget).to.equal(0);
+    });
+
+    it('rejects setting a goal for an unregistered address', async function () {
+      const { tipstream, fan } = await deployFixture();
+      await expect(
+        tipstream.connect(fan).setGoal(ethers.parseEther('10'), 'goal')
+      ).to.be.revertedWithCustomError(tipstream, 'NotRegistered');
+    });
+
+    it('rejects a goal description over the length limit', async function () {
+      const { tipstream, creator } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+      await expect(
+        tipstream.connect(creator).setGoal(1, 'x'.repeat(141))
+      ).to.be.revertedWithCustomError(tipstream, 'GoalDescriptionTooLong');
+    });
+  });
+
+  describe('tip replies', function () {
+    it('lets the receiving creator reply to a specific tip, identified by its id', async function () {
+      const { tipstream, creator, fan } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+
+      const tx = await tipstream.connect(fan).tip(creator.address, 'gm!', { value: ethers.parseEther('1') });
+      const receipt = await tx.wait();
+      const tipEvent = receipt.logs
+        .map((log) => { try { return tipstream.interface.parseLog(log); } catch { return null; } })
+        .find((e) => e && e.name === 'TipSent');
+      const tipId = tipEvent.args.tipId;
+
+      expect(await tipstream.tipRecipient(tipId)).to.equal(creator.address);
+
+      await expect(tipstream.connect(creator).replyToTip(tipId, 'thank you!'))
+        .to.emit(tipstream, 'TipReplied')
+        .withArgs(tipId, creator.address, 'thank you!', anyValue);
+
+      expect(await tipstream.tipReplies(tipId)).to.equal('thank you!');
+    });
+
+    it('rejects a reply from anyone other than the tip\'s recipient', async function () {
+      const { tipstream, creator, fan, otherFan } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+      await tipstream.connect(fan).tip(creator.address, 'gm!', { value: ethers.parseEther('1') });
+
+      await expect(
+        tipstream.connect(otherFan).replyToTip(0, 'not yours to reply to')
+      ).to.be.revertedWithCustomError(tipstream, 'NotTipRecipient');
+    });
+
+    it('rejects a reply over the length limit', async function () {
+      const { tipstream, creator, fan } = await deployFixture();
+      await tipstream.connect(creator).registerCreator('Ada', 'bio');
+      await tipstream.connect(fan).tip(creator.address, 'gm!', { value: ethers.parseEther('1') });
+
+      await expect(
+        tipstream.connect(creator).replyToTip(0, 'x'.repeat(281))
+      ).to.be.revertedWithCustomError(tipstream, 'ReplyTooLong');
+    });
+  });
 });
