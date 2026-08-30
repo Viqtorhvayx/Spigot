@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Verinode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 3rem auto; padding: 0 1rem; color: #1a1a1a; }
+    button { padding: 0.6rem 1rem; margin: 0.25rem 0; border: 1px solid #1a1a1a; background: #fff; border-radius: 6px; cursor: pointer; }
+    button:hover:not(:disabled) { background: #f2f2f2; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input { padding: 0.5rem; width: 100%; box-sizing: border-box; margin: 0.4rem 0; }
+    .card { border: 1px solid #e2e2e2; border-radius: 10px; padding: 1.2rem; margin: 1rem 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4rem; }
+    .dot.active { background: #1a9c4a; }
+    .dot.inactive { background: #c74; }
+    #log { white-space: pre-wrap; background: #f6f6f6; padding: 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.85rem; }
+    code { background: #f2f2f2; padding: 0.1rem 0.3rem; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Verinode</h1>
+  <p>
+    On-chain liveness attestation for X1 EcoChain nodes. Operators register and submit
+    periodic heartbeats — uptime becomes a verifiable on-chain record instead of a
+    self-reported claim.
+  </p>
+
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="addNetworkBtn">Add X1 EcoChain to MetaMask</button>
+  <p>Account: <span id="account">not connected</span></p>
+
+  <div class="card">
+    <h3>Your node</h3>
+    <div id="registerSection">
+      <input id="labelInput" placeholder="Node label, e.g. home-node-1" />
+      <button id="registerBtn">Register Node</button>
+    </div>
+    <p id="myStatus">connect wallet to check status</p>
+    <button id="heartbeatBtn" disabled>Submit Heartbeat</button>
+  </div>
+
+  <div class="card">
+    <h3>Network</h3>
+    <p><span id="operatorCount">–</span> registered operator(s)</p>
+    <button id="refreshBtn">Refresh</button>
+    <table>
+      <thead>
+        <tr><th>Status</th><th>Label</th><th>Operator</th><th>Heartbeats</th><th>Last seen</th></tr>
+      </thead>
+      <tbody id="operatorsTable"></tbody>
+    </table>
+  </div>
+
+  <div id="log"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
