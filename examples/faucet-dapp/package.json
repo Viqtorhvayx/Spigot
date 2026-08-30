@@ -1,0 +1,19 @@
+{
+  "name": "x1-faucet-dapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "X1 Forge reference dApp: a self-serve ERC-20 claim faucet with an on-chain cooldown.",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network x1Testnet"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5"
+  }
+}

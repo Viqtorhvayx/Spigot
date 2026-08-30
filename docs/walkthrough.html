@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>X1 Forge Walkthrough</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/asciinema-player@3.7.0/dist/bundle/asciinema-player.css" />
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 3rem auto; padding: 0 1rem; color: #1a1a1a; }
+    p { line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h1>X1 Forge — Terminal Walkthrough</h1>
+  <p>
+    A real recording of the X1 Forge flow: scaffold a project, install, compile,
+    test, check network status, and deploy — all real commands and real output
+    captured while building this kit against the live Maculatus testnet.
+  </p>
+  <div id="player"></div>
+  <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3.7.0/dist/bundle/asciinema-player.min.js"></script>
+  <script>
+    AsciinemaPlayer.create('walkthrough.cast', document.getElementById('player'), {
+      theme: 'monokai',
+      autoPlay: false,
+      idleTimeLimit: 2,
+    });
+  </script>
+  <p>
+    See <a href="quickstart.md">the quickstart</a> for the same steps as copy-pasteable commands.
+  </p>
+</body>
+</html>
