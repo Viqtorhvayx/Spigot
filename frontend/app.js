@@ -1,735 +1,612 @@
-// Live on the Maculatus testnet — see ../README.md
-const CONTRACT_ADDRESS = '0xE46141f72321163F3F35aF86cebA6693519e9cCE';
-const DEPLOY_BLOCK = 10242615;
+// Spigot frontend — vanilla JS + ethers v6, no build step.
 
-const X1_TESTNET = {
-  chainId: '0x2A1A', // 10778 in hex
-  chainName: 'X1 EcoChain — Maculatus Testnet',
-  nativeCurrency: { name: 'X1 Testnet Token', symbol: 'X1T', decimals: 18 },
-  rpcUrls: ['https://maculatus-rpc.x1eco.com/'],
-  blockExplorerUrls: ['https://maculatus-scan.x1eco.com/'],
-};
+const readProvider = new ethers.JsonRpcProvider(X1_RPC_URL);
+const readContract = new ethers.Contract(CONTRACT_ADDRESS, METERLY_ABI, readProvider);
 
-const ABI = [
-  'function registerCreator(string name, string bio) external',
-  'function updateProfile(string name, string bio) external',
-  'function setDisplayName(string name) external',
-  'function setGoal(uint256 target, string description) external',
-  'function follow(address creator) external',
-  'function unfollow(address creator) external',
-  'function tip(address creator, string message) external payable returns (uint256)',
-  'function replyToTip(uint256 tipId, string reply) external',
-  'function withdraw() external',
-  'function pendingWithdrawals(address) view returns (uint256)',
-  'function creators(address) view returns (string name, string bio, uint256 registeredAt, uint256 totalReceived, uint256 tipCount, uint256 followerCount, uint256 goalTarget, string goalDescription)',
-  'function getCreators() view returns (address[])',
-  'function creatorCount() view returns (uint256)',
-  'function displayNames(address) view returns (string)',
-  'function isFollowing(address, address) view returns (bool)',
-  'function tipReplies(uint256) view returns (string)',
-  'function tipRecipient(uint256) view returns (address)',
-  'event TipSent(uint256 indexed tipId, address indexed from, address indexed to, uint256 payout, uint256 fee, string message, uint256 timestamp)',
-  'event TipReplied(uint256 indexed tipId, address indexed creator, string reply, uint256 timestamp)',
-];
-
-// A small, deliberately chosen palette — every address gets a stable color
-// from this set rather than a single flat brand color everywhere.
-const AVATAR_PALETTE = [
-  'bg-emerald-100 text-emerald-700',
-  'bg-blue-100 text-blue-700',
-  'bg-purple-100 text-purple-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700',
-  'bg-cyan-100 text-cyan-700',
-  'bg-indigo-100 text-indigo-700',
-  'bg-teal-100 text-teal-700',
-];
-
+let browserProvider = null;
+let signer = null;
+let signerContract = null;
 let account = null;
-let pendingTipTarget = null;
-let nameByAddress = {}; // built from the creator list, used to label the activity feed
-let allCreators = []; // cached so search/sort can re-render without refetching
 
-const params = new URLSearchParams(location.search);
-const profileAddress = params.get('creator');
+let servicesCache = []; // [{id, provider, name, description, pricePerCall, maxCallsPerDay, registeredAt, totalCalls, totalRevenue, active}]
 
-// ---------- small UI helpers ----------
+// ---------- helpers ----------
+
+function short(addr) {
+  return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
+}
+
+function fmtX1T(wei, maxDecimals = 4) {
+  const s = ethers.formatEther(wei);
+  const n = Number(s);
+  if (Number.isNaN(n)) return s;
+  return n.toLocaleString(undefined, { maximumFractionDigits: maxDecimals });
+}
+
+function avatarColor(addr) {
+  const colors = ['#22d3ee', '#a78bfa', '#f472b6', '#fb923c', '#4ade80', '#facc15', '#60a5fa', '#f87171'];
+  let hash = 0;
+  for (let i = 0; i < addr.length; i++) hash = (hash * 31 + addr.charCodeAt(i)) >>> 0;
+  return colors[hash % colors.length];
+}
+
+async function displayNameOr(addr) {
+  try {
+    const name = await readContract.displayNames(addr);
+    return name && name.length ? name : null;
+  } catch {
+    return null;
+  }
+}
+
+function avatarHtml(addr, size = 22) {
+  return `<span class="inline-block rounded-full" style="width:${size}px;height:${size}px;background:${avatarColor(addr)}"></span>`;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function timeAgo(ts) {
+  const secs = Math.floor(Date.now() / 1000) - Number(ts);
+  if (secs < 60) return `${secs}s ago`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+// ---------- toasts ----------
 
 function toast(message, type = 'info') {
-  const container = document.getElementById('toastContainer');
-  const colors = {
-    info: 'bg-slate-900 text-white',
-    success: 'bg-emerald-500 text-white',
-    error: 'bg-red-500 text-white',
-  };
+  const host = document.getElementById('toastHost');
   const el = document.createElement('div');
-  el.className = `toast ${colors[type]} px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm`;
+  const palette = {
+    info: 'border-border bg-panel text-slate-200',
+    success: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+    error: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
+  };
+  el.className = `toast-enter border rounded-xl px-4 py-3 text-sm shadow-lg ${palette[type] || palette.info}`;
   el.textContent = message;
-  container.appendChild(el);
+  host.appendChild(el);
   setTimeout(() => {
+    el.style.transition = 'opacity 0.3s, transform 0.3s';
     el.style.opacity = '0';
-    el.style.transform = 'translateY(-4px)';
+    el.style.transform = 'translateY(-8px)';
     setTimeout(() => el.remove(), 300);
-  }, 4000);
+  }, 4200);
 }
 
-const log = (msg) => {
-  const el = document.getElementById('log');
-  el.textContent += `${msg}\n`;
-  el.scrollTop = el.scrollHeight;
-};
-
-function wireCounter(inputId, countId) {
-  const input = document.getElementById(inputId);
-  const count = document.getElementById(countId);
-  if (!input || !count) return;
-  input.addEventListener('input', () => {
-    count.textContent = input.value.length;
-  });
-}
-
-const getProvider = () => {
-  if (!window.ethereum) throw new Error('No wallet found. Install MetaMask.');
-  return new ethers.BrowserProvider(window.ethereum);
-};
-
-const getReadContract = () => {
-  const readProvider = new ethers.JsonRpcProvider(X1_TESTNET.rpcUrls[0]);
-  return new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
-};
-
-const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-
-const avatarColor = (addr) => AVATAR_PALETTE[parseInt(addr.slice(2, 4), 16) % AVATAR_PALETTE.length];
-
-const timeAgo = (unixSeconds) => {
-  const seconds = Math.floor(Date.now() / 1000) - Number(unixSeconds);
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
-};
-
-// ---------- rendering ----------
-
-// Fills in nameByAddress for any addresses not already known (creators are
-// pre-loaded; this covers fans who've set a display name).
-async function resolveNames(addresses) {
-  const contract = getReadContract();
-  const unknown = [...new Set(addresses)].filter((a) => !(a in nameByAddress));
-  if (unknown.length === 0) return;
-  const names = await Promise.all(unknown.map((a) => contract.displayNames(a)));
-  unknown.forEach((addr, i) => {
-    if (names[i]) nameByAddress[addr] = names[i];
-  });
-}
-
-function renderFeed(container, events, { showTarget, allowReply }) {
-  if (events.length === 0) {
-    container.innerHTML = '<p class="text-sm text-slate-400 p-5">No tips yet — be the first.</p>';
-    return;
+function friendlyError(err) {
+  const raw = (err && (err.shortMessage || err.reason || err.message)) || 'Transaction failed';
+  const knownErrors = [
+    'NameRequired', 'NameTooLong', 'DescriptionTooLong', 'InvalidPrice', 'ServiceNotFound',
+    'NotServiceProvider', 'ServiceInactive', 'InsufficientCredit', 'IncorrectPayment',
+    'DailyLimitReached', 'NothingToWithdraw', 'TransferFailed', 'NothingToDeposit',
+  ];
+  for (const name of knownErrors) {
+    if (raw.includes(name)) return name.replace(/([a-z])([A-Z])/g, '$1 $2');
   }
-  container.innerHTML = events
-    .map((e) => {
-      const fromLabel = nameByAddress[e.args.from] || shortAddr(e.args.from);
-      const toLabel = nameByAddress[e.args.to] || shortAddr(e.args.to);
-      const arrow = showTarget ? ` &rarr; <span class="font-medium">${toLabel}</span>` : '';
-      const message = e.args.message ? `<div class="text-sm text-slate-500 mt-1">"${e.args.message}"</div>` : '';
-      const reply = e.reply
-        ? `<div class="text-sm bg-emerald-50 text-emerald-800 rounded-lg px-3 py-2 mt-2">↳ ${e.reply}</div>`
-        : allowReply
-        ? `<div class="mt-2 flex gap-2">
-             <input data-tipid="${e.args.tipId}" class="replyInput flex-1 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400" placeholder="Reply publicly…" maxlength="280" />
-             <button data-tipid="${e.args.tipId}" class="replyBtn text-xs font-medium px-2 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition">Reply</button>
-           </div>`
-        : '';
-      return `
-      <div class="p-4">
-        <div class="flex items-center justify-between text-sm">
-          <span><span class="font-medium">${fromLabel}</span>${arrow} tipped <span class="font-semibold text-emerald-700">${ethers.formatEther(e.args.payout)} X1T</span></span>
-          <span class="text-xs text-slate-400">${timeAgo(e.args.timestamp)}</span>
-        </div>
-        ${message}
-        ${reply}
-      </div>`;
-    })
-    .join('');
-
-  if (allowReply) {
-    document.querySelectorAll('.replyBtn').forEach((btn) =>
-      btn.addEventListener('click', () => submitReply(btn.dataset.tipid, container, events, { showTarget, allowReply }))
-    );
-  }
+  if (raw.toLowerCase().includes('user rejected') || raw.toLowerCase().includes('user denied')) return 'Rejected in wallet';
+  if (raw.toLowerCase().includes('insufficient funds')) return 'Insufficient X1T for this transaction';
+  return raw.length > 140 ? raw.slice(0, 140) + '…' : raw;
 }
 
-async function submitReply(tipId, container, events, renderOpts) {
-  const input = document.querySelector(`.replyInput[data-tipid="${tipId}"]`);
-  const reply = input.value.trim();
-  if (!reply) {
-    toast('Enter a reply first.', 'error');
-    return;
+async function runTx(promiseFn, { pending, success, button } = {}) {
+  if (button) {
+    button.disabled = true;
+    button.dataset.originalText = button.dataset.originalText || button.innerHTML;
+    button.innerHTML = `<span class="spinner"></span> ${pending || 'Confirming…'}`;
   }
   try {
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.replyToTip(tipId, reply);
-    log(`replyToTip tx: ${tx.hash}`);
-    await tx.wait();
-    toast('Reply posted.', 'success');
-    const event = events.find((e) => e.args.tipId.toString() === tipId);
-    if (event) event.reply = reply;
-    renderFeed(container, events, renderOpts);
+    const tx = await promiseFn();
+    const receipt = await tx.wait();
+    toast(success || 'Transaction confirmed', 'success');
+    return receipt;
   } catch (err) {
-    toast(err.reason || err.message, 'error');
-  }
-}
-
-async function loadFeed(container, creatorFilterAddress, { allowReply = false } = {}) {
-  try {
-    const contract = getReadContract();
-    const filter = creatorFilterAddress
-      ? contract.filters.TipSent(null, null, creatorFilterAddress)
-      : contract.filters.TipSent();
-    const events = await contract.queryFilter(filter, DEPLOY_BLOCK, 'latest');
-    events.reverse(); // most recent first
-    const shown = events.slice(0, 20);
-
-    await resolveNames(shown.flatMap((e) => [e.args.from, e.args.to]));
-
-    const replies = await Promise.all(shown.map((e) => contract.tipReplies(e.args.tipId)));
-    shown.forEach((e, i) => {
-      if (replies[i]) e.reply = replies[i];
-    });
-
-    renderFeed(container, shown, { showTarget: !creatorFilterAddress, allowReply });
-    return events;
-  } catch (err) {
-    toast(`Error loading activity: ${err.message}`, 'error');
-    return [];
-  }
-}
-
-function renderTopSupporters(container, section, events) {
-  if (events.length === 0) {
-    section.classList.add('hidden');
-    return;
-  }
-
-  const totals = new Map();
-  for (const e of events) {
-    totals.set(e.args.from, (totals.get(e.args.from) || 0n) + e.args.payout);
-  }
-  const ranked = [...totals.entries()].sort((a, b) => (b[1] > a[1] ? 1 : -1)).slice(0, 5);
-
-  section.classList.remove('hidden');
-  container.innerHTML = ranked
-    .map(([addr, total], i) => {
-      const label = nameByAddress[addr] || shortAddr(addr);
-      return `
-      <div class="p-4 flex items-center justify-between text-sm">
-        <span><span class="text-slate-400 font-mono mr-2">#${i + 1}</span><span class="font-medium">${label}</span></span>
-        <span class="font-semibold text-emerald-700">${ethers.formatEther(total)} X1T</span>
-      </div>`;
-    })
-    .join('');
-}
-
-async function refreshWithdrawWidget() {
-  if (!account) return;
-  try {
-    const contract = getReadContract();
-    const pending = await contract.pendingWithdrawals(account);
-    const widget = document.getElementById('withdrawWidget');
-    if (pending === 0n) {
-      widget.classList.add('hidden');
-      return;
+    console.error(err);
+    toast(friendlyError(err), 'error');
+    throw err;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = button.dataset.originalText;
     }
-    widget.classList.remove('hidden');
-    document.getElementById('withdrawAmount').textContent = `${ethers.formatEther(pending)} X1T`;
-    document.getElementById('withdrawBtn').disabled = false;
-  } catch (err) {
-    log(`Error checking withdrawable balance: ${err.message}`);
   }
 }
 
-function renderCreatorGrid() {
-  const grid = document.getElementById('creatorGrid');
-  const query = document.getElementById('searchInput').value.trim().toLowerCase();
-  const sortBy = document.getElementById('sortSelect').value;
+// ---------- wallet ----------
 
-  let list = allCreators.filter((c) => c.name.toLowerCase().includes(query));
-
-  if (sortBy === 'top') {
-    list = [...list].sort((a, b) => (b.totalReceived > a.totalReceived ? 1 : -1));
-  } else if (sortBy === 'tips') {
-    list = [...list].sort((a, b) => Number(b.tipCount) - Number(a.tipCount));
-  } else if (sortBy === 'newest') {
-    list = [...list].sort((a, b) => Number(b.registeredAt) - Number(a.registeredAt));
-  }
-
-  if (list.length === 0) {
-    grid.innerHTML = `<p class="text-sm text-slate-400 col-span-full">${
-      allCreators.length === 0 ? 'No creators yet — be the first.' : 'No creators match your search.'
-    }</p>`;
+function renderWalletArea() {
+  const el = document.getElementById('walletArea');
+  if (!account) {
+    el.innerHTML = `<button id="connectBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:bg-lime-300 transition">Connect Wallet</button>`;
+    document.getElementById('connectBtn').onclick = connectWallet;
     return;
   }
+  el.innerHTML = `
+    <div class="flex items-center gap-2 bg-panel2 border border-border rounded-full pl-1.5 pr-3 py-1">
+      ${avatarHtml(account, 22)}
+      <span class="text-sm font-mono" id="walletAddrLabel">${short(account)}</span>
+    </div>`;
+  displayNameOr(account).then((name) => {
+    if (name) document.getElementById('walletAddrLabel').textContent = name;
+  });
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    toast('No wallet found — install MetaMask or another EVM wallet', 'error');
+    return;
+  }
+  try {
+    browserProvider = new ethers.BrowserProvider(window.ethereum);
+    await browserProvider.send('eth_requestAccounts', []);
+    await ensureNetwork();
+    signer = await browserProvider.getSigner();
+    signerContract = new ethers.Contract(CONTRACT_ADDRESS, METERLY_ABI, signer);
+    account = await signer.getAddress();
+    renderWalletArea();
+    refreshAccountPanel();
+    refreshMyServices();
+    toast('Wallet connected', 'success');
+  } catch (err) {
+    console.error(err);
+    toast(friendlyError(err), 'error');
+  }
+}
+
+async function ensureNetwork() {
+  const net = await browserProvider.send('eth_chainId', []);
+  if (net.toLowerCase() === X1_CHAIN_ID_HEX) return;
+  try {
+    await browserProvider.send('wallet_switchEthereumChain', [{ chainId: X1_CHAIN_ID_HEX }]);
+  } catch (switchErr) {
+    if (switchErr.code === 4902) {
+      await browserProvider.send('wallet_addEthereumChain', [X1_NETWORK_PARAMS]);
+    } else {
+      throw switchErr;
+    }
+  }
+}
+
+if (window.ethereum) {
+  window.ethereum.on?.('accountsChanged', () => window.location.reload());
+  window.ethereum.on?.('chainChanged', () => window.location.reload());
+}
+
+// ---------- tabs ----------
+
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+    const panel = document.getElementById(`tab-${btn.dataset.tab}`);
+    panel.classList.remove('hidden');
+    panel.classList.add('fade-in');
+    if (btn.dataset.tab === 'activity') loadActivity();
+  });
+});
+
+// ---------- services: load + render ----------
+
+async function loadServices() {
+  try {
+    const total = Number(await readContract.totalServices());
+    const calls = [];
+    for (let i = 0; i < total; i++) calls.push(readContract.services(i));
+    const raw = await Promise.all(calls);
+    servicesCache = raw.map((s, id) => ({
+      id,
+      provider: s.provider,
+      name: s.name,
+      description: s.description,
+      pricePerCall: s.pricePerCall,
+      maxCallsPerDay: s.maxCallsPerDay,
+      registeredAt: s.registeredAt,
+      totalCalls: s.totalCalls,
+      totalRevenue: s.totalRevenue,
+      active: s.active,
+    }));
+    document.getElementById('statServices').textContent = servicesCache.filter((s) => s.active).length;
+    const totalCallsSettled = await readContract.totalCallsSettled();
+    document.getElementById('statCalls').textContent = totalCallsSettled.toString();
+    await renderServiceGrid();
+    await renderMyServices();
+  } catch (err) {
+    console.error(err);
+    toast('Could not load services from chain', 'error');
+  }
+}
+
+async function renderServiceGrid() {
+  const grid = document.getElementById('serviceGrid');
+  const showInactive = document.getElementById('showInactive').checked;
+  const list = servicesCache.filter((s) => showInactive || s.active);
+  document.getElementById('serviceEmpty').classList.toggle('hidden', list.length > 0);
+  if (!list.length) {
+    grid.innerHTML = '';
+    return;
+  }
+
+  const names = await Promise.all(list.map((s) => displayNameOr(s.provider)));
 
   grid.innerHTML = list
-    .map(
-      (c) => `
-    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
-      <a href="?creator=${c.addr}" class="flex items-center gap-3 hover:opacity-80 transition">
-        <div class="w-10 h-10 rounded-full ${avatarColor(c.addr)} flex items-center justify-center font-bold">${c.name.charAt(0).toUpperCase()}</div>
-        <div>
-          <div class="font-semibold">${c.name}</div>
-          <div class="text-xs text-slate-400 font-mono">${shortAddr(c.addr)}</div>
+    .map((s, idx) => {
+      const providerLabel = names[idx] || short(s.provider);
+      const cap = s.maxCallsPerDay > 0n ? `${s.maxCallsPerDay}/day per caller` : 'no daily cap';
+      return `
+      <div class="bg-panel border border-border rounded-2xl p-4 flex flex-col gap-3 ${s.active ? '' : 'opacity-50'}">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="font-bold truncate">${escapeHtml(s.name)}</div>
+            <div class="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+              ${avatarHtml(s.provider, 14)} <span class="truncate">${escapeHtml(providerLabel)}</span>
+            </div>
+          </div>
+          ${s.active
+            ? '<span class="text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full shrink-0">ACTIVE</span>'
+            : '<span class="text-[10px] font-semibold text-slate-500 bg-slate-500/10 px-2 py-0.5 rounded-full shrink-0">INACTIVE</span>'}
         </div>
-      </a>
-      <p class="text-sm text-slate-500 mt-3 flex-1">${c.bio || 'No bio yet.'}</p>
-      <div class="flex items-center justify-between mt-4 text-sm">
-        <span class="text-slate-500">${ethers.formatEther(c.totalReceived)} X1T · ${c.tipCount} tip(s)</span>
-        <button data-addr="${c.addr}" data-name="${c.name}" class="tipBtn text-sm font-medium px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Tip</button>
-      </div>
-    </div>`
-    )
+        <p class="text-xs text-slate-400 leading-relaxed line-clamp-3">${escapeHtml(s.description)}</p>
+        <div class="flex items-center justify-between text-xs text-slate-500 border-t border-border pt-3">
+          <span>${cap}</span>
+          <span>${s.totalCalls.toString()} calls</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="font-mono font-bold">${fmtX1T(s.pricePerCall)} <span class="text-xs text-slate-500 font-sans font-normal">X1T/call</span></div>
+          <button data-call-id="${s.id}" class="callBtn bg-accent text-ink text-xs font-semibold rounded-lg px-3 py-1.5 hover:bg-lime-300 disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
+        </div>
+      </div>`;
+    })
     .join('');
 
-  document.querySelectorAll('.tipBtn').forEach((btn) =>
-    btn.addEventListener('click', () => openTipModal(btn.dataset.addr, btn.dataset.name))
-  );
-}
-
-async function refreshCreators() {
-  try {
-    const contract = getReadContract();
-    const addresses = await contract.getCreators();
-
-    if (addresses.length === 0) {
-      allCreators = [];
-      nameByAddress = {};
-      renderCreatorGrid();
-      await loadFeed(document.getElementById('activityFeed'), null);
-      return;
-    }
-
-    allCreators = await Promise.all(
-      addresses.map(async (addr) => {
-        // ethers v6 Result objects don't expose named fields via spread —
-        // only numeric indices — so pull each field out explicitly.
-        const c = await contract.creators(addr);
-        return {
-          addr,
-          name: c.name,
-          bio: c.bio,
-          registeredAt: c.registeredAt,
-          totalReceived: c.totalReceived,
-          tipCount: c.tipCount,
-        };
-      })
-    );
-
-    nameByAddress = Object.fromEntries(allCreators.map((c) => [c.addr, c.name]));
-    renderCreatorGrid();
-
-    await loadFeed(document.getElementById('activityFeed'), null);
-  } catch (err) {
-    toast(`Error loading creators: ${err.message}`, 'error');
-  }
-}
-
-async function refreshMyStats() {
-  if (!account) return;
-  try {
-    const contract = getReadContract();
-    const record = await contract.creators(account);
-
-    if (!record.name) {
-      document.getElementById('registerView').classList.remove('hidden');
-      document.getElementById('myStatsView').classList.add('hidden');
-      return;
-    }
-
-    document.getElementById('registerView').classList.add('hidden');
-    document.getElementById('myStatsView').classList.remove('hidden');
-    document.getElementById('myTotal').textContent = `${ethers.formatEther(record.totalReceived)} X1T`;
-    document.getElementById('myTipCount').textContent = record.tipCount.toString();
-    document.getElementById('myShareLink').value = `${location.origin}${location.pathname}?creator=${account}`;
-    document.getElementById('editNameInput').value = record.name;
-    document.getElementById('editBioInput').value = record.bio;
-    document.getElementById('editNameCount').textContent = record.name.length;
-    document.getElementById('editBioCount').textContent = record.bio.length;
-
-    if (record.goalTarget > 0n) {
-      document.getElementById('myGoalSummary').textContent =
-        `${ethers.formatEther(record.totalReceived)} / ${ethers.formatEther(record.goalTarget)} X1T — ${record.goalDescription}`;
-      document.getElementById('goalTargetInput').value = ethers.formatEther(record.goalTarget);
-      document.getElementById('goalDescInput').value = record.goalDescription;
-    } else {
-      document.getElementById('myGoalSummary').textContent = 'No goal set.';
-    }
-  } catch (err) {
-    toast(`Error checking your page: ${err.message}`, 'error');
-  }
-}
-
-async function refreshDisplayNameWidget() {
-  if (!account) return;
-  try {
-    const contract = getReadContract();
-    const name = await contract.displayNames(account);
-    document.getElementById('displayNameWidget').classList.remove('hidden');
-    document.getElementById('currentDisplayName').textContent = name || 'not set';
-    document.getElementById('displayNameInput').value = name;
-  } catch (err) {
-    log(`Error checking display name: ${err.message}`);
-  }
-}
-
-async function loadProfile(addr) {
-  try {
-    document.getElementById('discoverView').classList.add('hidden');
-    document.getElementById('profileView').classList.remove('hidden');
-
-    const contract = getReadContract();
-    const record = await contract.creators(addr);
-
-    if (!record.name) {
-      document.getElementById('profileName').textContent = 'Creator not found';
-      document.getElementById('profileBio').textContent = 'No creator is registered at this address.';
-      return;
-    }
-
-    nameByAddress[addr] = record.name;
-    document.title = `${record.name} — Tipstream`;
-
-    const avatar = document.getElementById('profileAvatar');
-    avatar.className = `w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl mx-auto ${avatarColor(addr)}`;
-    avatar.textContent = record.name.charAt(0).toUpperCase();
-    document.getElementById('profileName').textContent = record.name;
-    document.getElementById('profileAddr').textContent = addr;
-    document.getElementById('profileFollowerCount').textContent = record.followerCount.toString();
-    document.getElementById('profileBio').textContent = record.bio || 'No bio yet.';
-    document.getElementById('profileTotal').textContent = `${ethers.formatEther(record.totalReceived)} X1T`;
-    document.getElementById('profileTipCount').textContent = record.tipCount.toString();
-    document.getElementById('profileTipBtn').replaceWith(document.getElementById('profileTipBtn').cloneNode(true));
-    document.getElementById('profileTipBtn').addEventListener('click', () => openTipModal(addr, record.name));
-
-    const goalSection = document.getElementById('goalSection');
-    if (record.goalTarget > 0n) {
-      goalSection.classList.remove('hidden');
-      const pct = Math.min(100, Number((record.totalReceived * 100n) / record.goalTarget));
-      document.getElementById('goalDescText').textContent = record.goalDescription || 'Funding goal';
-      document.getElementById('goalProgressText').textContent =
-        `${ethers.formatEther(record.totalReceived)} / ${ethers.formatEther(record.goalTarget)} X1T (${pct}%)`;
-      document.getElementById('goalProgressBar').style.width = `${pct}%`;
-    } else {
-      goalSection.classList.add('hidden');
-    }
-
-    const followBtn = document.getElementById('profileFollowBtn');
-    const isOwnProfile = account && account.toLowerCase() === addr.toLowerCase();
-    if (account && !isOwnProfile) {
-      followBtn.classList.remove('hidden');
-      const following = await contract.isFollowing(account, addr);
-      setFollowButtonState(followBtn, following, addr);
-    } else {
-      followBtn.classList.add('hidden');
-    }
-
-    const events = await loadFeed(document.getElementById('profileFeed'), addr, { allowReply: isOwnProfile });
-    renderTopSupporters(
-      document.getElementById('topSupporters'),
-      document.getElementById('topSupportersSection'),
-      events
-    );
-  } catch (err) {
-    toast(`Error loading profile: ${err.message}`, 'error');
-  }
-}
-
-function setFollowButtonState(btn, following, creatorAddr) {
-  btn.textContent = following ? 'Following' : 'Follow';
-  btn.className = following
-    ? 'text-sm font-medium px-6 py-3 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition'
-    : 'text-sm font-medium px-6 py-3 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition';
-  btn.replaceWith(btn.cloneNode(true));
-  const fresh = document.getElementById('profileFollowBtn');
-  fresh.addEventListener('click', async () => {
-    const original = fresh.textContent;
-    try {
-      if (!account) throw new Error('Connect your wallet first.');
-      fresh.disabled = true;
-      fresh.innerHTML = '<span class="spinner"></span>' + (following ? 'Unfollowing…' : 'Following…');
-      const provider = getProvider();
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-      const tx = following ? await contract.unfollow(creatorAddr) : await contract.follow(creatorAddr);
-      log(`${following ? 'unfollow' : 'follow'} tx: ${tx.hash}`);
-      await tx.wait();
-      toast(following ? 'Unfollowed.' : 'Now following!', 'success');
-      await loadProfile(creatorAddr);
-    } catch (err) {
-      toast(err.reason || err.message, 'error');
-      fresh.disabled = false;
-      fresh.textContent = original;
-    }
+  grid.querySelectorAll('.callBtn').forEach((btn) => {
+    btn.addEventListener('click', () => openCallModal(Number(btn.dataset.callId)));
   });
 }
 
-function openTipModal(addr, name) {
-  pendingTipTarget = addr;
-  document.getElementById('tipModalName').textContent = name;
-  document.getElementById('tipAmount').value = '';
-  document.getElementById('tipMessage').value = '';
-  document.getElementById('tipMessageCount').textContent = '0';
-  document.getElementById('tipModal').classList.remove('hidden');
+async function renderMyServices() {
+  const container = document.getElementById('myServices');
+  const emptyEl = document.getElementById('myServicesEmpty');
+  const connectEl = document.getElementById('myServicesConnect');
+
+  if (!account) {
+    container.innerHTML = '';
+    emptyEl.classList.add('hidden');
+    connectEl.classList.remove('hidden');
+    return;
+  }
+  connectEl.classList.add('hidden');
+
+  const mine = servicesCache.filter((s) => s.provider.toLowerCase() === account.toLowerCase());
+  emptyEl.classList.toggle('hidden', mine.length > 0);
+
+  container.innerHTML = mine
+    .map((s) => `
+      <div class="bg-panel border border-border rounded-2xl p-4" data-service-card="${s.id}">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="font-bold">${escapeHtml(s.name)} <span class="text-xs font-normal text-slate-500">#${s.id}</span></div>
+            <p class="text-xs text-slate-400 mt-1">${escapeHtml(s.description)}</p>
+          </div>
+          <span class="text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-full ${s.active ? 'text-emerald-400 bg-emerald-400/10' : 'text-slate-500 bg-slate-500/10'}">${s.active ? 'ACTIVE' : 'INACTIVE'}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+          <div class="bg-panel2 rounded-lg py-2">
+            <div class="text-sm font-bold font-mono">${fmtX1T(s.pricePerCall)}</div>
+            <div class="text-[10px] text-slate-500">X1T/call</div>
+          </div>
+          <div class="bg-panel2 rounded-lg py-2">
+            <div class="text-sm font-bold font-mono">${s.totalCalls.toString()}</div>
+            <div class="text-[10px] text-slate-500">total calls</div>
+          </div>
+          <div class="bg-panel2 rounded-lg py-2">
+            <div class="text-sm font-bold font-mono">${fmtX1T(s.totalRevenue)}</div>
+            <div class="text-[10px] text-slate-500">revenue (X1T)</div>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button data-edit-id="${s.id}" class="editBtn flex-1 bg-panel2 border border-border hover:border-accent/60 text-xs font-semibold rounded-lg py-2">Edit</button>
+          <button data-toggle-id="${s.id}" class="toggleBtn flex-1 bg-panel2 border border-border hover:border-accent/60 text-xs font-semibold rounded-lg py-2">${s.active ? 'Deactivate' : 'Reactivate'}</button>
+        </div>
+        <div class="editForm hidden mt-3 pt-3 border-t border-border space-y-2" id="editForm-${s.id}"></div>
+      </div>`)
+    .join('');
+
+  container.querySelectorAll('.editBtn').forEach((btn) => {
+    btn.addEventListener('click', () => toggleEditForm(Number(btn.dataset.editId)));
+  });
+  container.querySelectorAll('.toggleBtn').forEach((btn) => {
+    btn.addEventListener('click', () => quickToggleActive(Number(btn.dataset.toggleId), btn));
+  });
 }
 
-function closeTipModal() {
-  pendingTipTarget = null;
-  document.getElementById('tipModal').classList.add('hidden');
+async function refreshMyServices() {
+  await loadServices();
 }
 
-// ---------- event wiring ----------
-
-document.getElementById('connectBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('connectBtn');
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Connecting…';
-  try {
-    const provider = getProvider();
-    const accounts = await provider.send('eth_requestAccounts', []);
-    account = accounts[0];
-    document.getElementById('account').textContent = account;
-    toast('Wallet connected.', 'success');
-    await refreshMyStats();
-    await refreshWithdrawWidget();
-    await refreshDisplayNameWidget();
-  } catch (err) {
-    toast(err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
+function toggleEditForm(id) {
+  const s = servicesCache.find((x) => x.id === id);
+  const form = document.getElementById(`editForm-${id}`);
+  if (!form.classList.contains('hidden')) {
+    form.classList.add('hidden');
+    return;
   }
-});
+  form.classList.remove('hidden');
+  form.innerHTML = `
+    <input class="edit-name w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" value="${escapeHtml(s.name)}" maxlength="64" />
+    <textarea class="edit-desc w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm resize-none" rows="2" maxlength="280">${escapeHtml(s.description)}</textarea>
+    <div class="grid grid-cols-2 gap-2">
+      <input class="edit-price bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" type="number" min="0" step="0.0001" value="${ethers.formatEther(s.pricePerCall)}" />
+      <input class="edit-cap bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" type="number" min="0" step="1" value="${s.maxCallsPerDay}" />
+    </div>
+    <button class="saveEditBtn w-full bg-accent text-ink font-semibold text-sm rounded-lg py-2 hover:bg-lime-300">Save changes</button>
+  `;
+  form.querySelector('.saveEditBtn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const name = form.querySelector('.edit-name').value.trim();
+    const description = form.querySelector('.edit-desc').value.trim();
+    const price = form.querySelector('.edit-price').value;
+    const cap = form.querySelector('.edit-cap').value || '0';
+    try {
+      await runTx(
+        () => signerContract.updateService(id, name, description, ethers.parseEther(price || '0'), BigInt(cap), s.active),
+        { pending: 'Saving…', success: 'Service updated', button: btn }
+      );
+      form.classList.add('hidden');
+      await loadServices();
+    } catch {}
+  });
+}
 
-document.getElementById('addNetworkBtn').addEventListener('click', async () => {
+async function quickToggleActive(id, btn) {
+  const s = servicesCache.find((x) => x.id === id);
   try {
-    if (!window.ethereum) throw new Error('No wallet found. Install MetaMask.');
-    await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [X1_TESTNET] });
-    toast('X1 EcoChain testnet added to wallet.', 'success');
-  } catch (err) {
-    toast(err.message, 'error');
-  }
+    await runTx(
+      () => signerContract.updateService(id, s.name, s.description, s.pricePerCall, s.maxCallsPerDay, !s.active),
+      { pending: 'Updating…', success: s.active ? 'Service deactivated' : 'Service reactivated', button: btn }
+    );
+    await loadServices();
+  } catch {}
+}
+
+// ---------- register service ----------
+
+const svcNameEl = document.getElementById('svcName');
+const svcDescEl = document.getElementById('svcDesc');
+svcNameEl.addEventListener('input', () => {
+  document.getElementById('nameCount').textContent = `${svcNameEl.value.length}/64`;
+});
+svcDescEl.addEventListener('input', () => {
+  document.getElementById('descCount').textContent = `${svcDescEl.value.length}/280`;
 });
 
-wireCounter('nameInput', 'nameCount');
-wireCounter('bioInput', 'bioCount');
-wireCounter('editNameInput', 'editNameCount');
-wireCounter('editBioInput', 'editBioCount');
-wireCounter('tipMessage', 'tipMessageCount');
-
-document.getElementById('editDisplayNameToggle').addEventListener('click', () => {
-  document.getElementById('displayNameForm').classList.toggle('hidden');
-});
-
-document.getElementById('saveDisplayNameBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('saveDisplayNameBtn');
-  const original = btn.textContent;
-  try {
-    if (!account) throw new Error('Connect your wallet first.');
-    const name = document.getElementById('displayNameInput').value.trim();
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Saving…';
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.setDisplayName(name);
-    log(`setDisplayName tx: ${tx.hash}`);
-    await tx.wait();
-    toast('Display name saved.', 'success');
-    document.getElementById('displayNameForm').classList.add('hidden');
-    await refreshDisplayNameWidget();
-  } catch (err) {
-    toast(err.reason || err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-document.getElementById('editGoalToggle').addEventListener('click', () => {
-  document.getElementById('editGoalForm').classList.toggle('hidden');
-});
-
-document.getElementById('saveGoalBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('saveGoalBtn');
-  const original = btn.textContent;
-  try {
-    if (!account) throw new Error('Connect your wallet first.');
-    const target = document.getElementById('goalTargetInput').value.trim();
-    const desc = document.getElementById('goalDescInput').value.trim();
-    if (!target || Number(target) < 0) throw new Error('Enter a valid target amount (0 clears the goal).');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Saving…';
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.setGoal(ethers.parseEther(target), desc);
-    log(`setGoal tx: ${tx.hash}`);
-    await tx.wait();
-    toast('Goal saved.', 'success');
-    document.getElementById('editGoalForm').classList.add('hidden');
-    await refreshMyStats();
-  } catch (err) {
-    toast(err.reason || err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-document.getElementById('registerBtn').addEventListener('click', async () => {
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!requireWallet()) return;
+  const name = svcNameEl.value.trim();
+  const description = svcDescEl.value.trim();
+  const price = document.getElementById('svcPrice').value;
+  const cap = document.getElementById('svcMaxCalls').value || '0';
   const btn = document.getElementById('registerBtn');
-  const original = btn.textContent;
+
   try {
-    if (!account) throw new Error('Connect your wallet first.');
-    const name = document.getElementById('nameInput').value.trim();
-    const bio = document.getElementById('bioInput').value.trim();
-    if (!name) throw new Error('Enter a name.');
+    await runTx(
+      () => signerContract.registerService(name, description, ethers.parseEther(price), BigInt(cap)),
+      { pending: 'Registering…', success: `"${name}" is live`, button: btn }
+    );
+    e.target.reset();
+    document.getElementById('nameCount').textContent = '0/64';
+    document.getElementById('descCount').textContent = '0/280';
+    await loadServices();
+  } catch {}
+});
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Creating…';
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.registerCreator(name, bio);
-    log(`registerCreator tx: ${tx.hash}`);
-    await tx.wait();
-    toast('Your page is live!', 'success');
-    await refreshMyStats();
-    await refreshCreators();
-  } catch (err) {
-    toast(err.reason || err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
+// ---------- account panel ----------
+
+async function refreshAccountPanel() {
+  const connectEl = document.getElementById('accountConnect');
+  const bodyEl = document.getElementById('accountBody');
+  if (!account) {
+    connectEl.classList.remove('hidden');
+    bodyEl.classList.add('hidden');
+    return;
   }
-});
+  connectEl.classList.add('hidden');
+  bodyEl.classList.remove('hidden');
 
-document.getElementById('editProfileToggle').addEventListener('click', () => {
-  document.getElementById('editProfileForm').classList.toggle('hidden');
-});
-
-document.getElementById('saveProfileBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('saveProfileBtn');
-  const original = btn.textContent;
-  try {
-    if (!account) throw new Error('Connect your wallet first.');
-    const name = document.getElementById('editNameInput').value.trim();
-    const bio = document.getElementById('editBioInput').value.trim();
-    if (!name) throw new Error('Name cannot be empty.');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Saving…';
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.updateProfile(name, bio);
-    log(`updateProfile tx: ${tx.hash}`);
-    await tx.wait();
-    toast('Profile updated.', 'success');
-    document.getElementById('editProfileForm').classList.add('hidden');
-    await refreshMyStats();
-    await refreshCreators();
-  } catch (err) {
-    toast(err.reason || err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-document.getElementById('copyShareLinkBtn').addEventListener('click', () => {
-  const input = document.getElementById('myShareLink');
-  input.select();
-  navigator.clipboard.writeText(input.value).then(() => toast('Share link copied.', 'success'));
-});
-
-document.getElementById('withdrawBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('withdrawBtn');
-  const original = btn.textContent;
-  try {
-    if (!account) throw new Error('Connect your wallet first.');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Withdrawing…';
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.withdraw();
-    log(`withdraw tx: ${tx.hash}`);
-    await tx.wait();
-    toast('Withdrawal confirmed.', 'success');
-    await refreshWithdrawWidget();
-  } catch (err) {
-    toast(err.reason || err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-document.getElementById('tipCancelBtn').addEventListener('click', closeTipModal);
-
-document.getElementById('tipSendBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('tipSendBtn');
-  const original = btn.textContent;
-  try {
-    if (!account) throw new Error('Connect your wallet first.');
-    const amount = document.getElementById('tipAmount').value.trim();
-    const message = document.getElementById('tipMessage').value.trim();
-    if (!amount || Number(amount) <= 0) throw new Error('Enter a tip amount.');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Sending…';
-    const provider = getProvider();
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const tx = await contract.tip(pendingTipTarget, message, { value: ethers.parseEther(amount) });
-    log(`tip tx: ${tx.hash}`);
-    closeTipModal();
-    await tx.wait();
-    toast('Tip sent!', 'success');
-    if (profileAddress) {
-      await loadProfile(profileAddress);
-    } else {
-      await refreshCreators();
-    }
-    await refreshMyStats();
-    await refreshWithdrawWidget();
-  } catch (err) {
-    toast(err.reason || err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-});
-
-document.getElementById('refreshBtn').addEventListener('click', refreshCreators);
-document.getElementById('searchInput').addEventListener('input', renderCreatorGrid);
-document.getElementById('sortSelect').addEventListener('change', renderCreatorGrid);
-
-document.querySelectorAll('.quickAmountBtn').forEach((btn) =>
-  btn.addEventListener('click', () => {
-    document.getElementById('tipAmount').value = btn.dataset.amount;
-  })
-);
-
-if (profileAddress) {
-  loadProfile(profileAddress);
-} else {
-  refreshCreators();
+  const [credit, earnings, name] = await Promise.all([
+    readContract.consumerBalance(account),
+    readContract.pendingWithdrawals(account),
+    displayNameOr(account),
+  ]);
+  document.getElementById('creditBalance').textContent = fmtX1T(credit);
+  document.getElementById('earningsBalance').textContent = fmtX1T(earnings);
+  document.getElementById('withdrawEarningsBtn').disabled = earnings === 0n;
+  if (name) document.getElementById('displayNameInput').value = name;
 }
+
+document.getElementById('nameForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!requireWallet()) return;
+  const name = document.getElementById('displayNameInput').value.trim();
+  const btn = document.getElementById('nameBtn');
+  try {
+    await runTx(() => signerContract.setDisplayName(name), { pending: 'Saving…', success: 'Display name saved', button: btn });
+    renderWalletArea();
+  } catch {}
+});
+
+document.getElementById('depositBtn').addEventListener('click', async () => {
+  if (!requireWallet()) return;
+  const amount = document.getElementById('depositAmount').value;
+  if (!amount || Number(amount) <= 0) return toast('Enter an amount to deposit', 'error');
+  const btn = document.getElementById('depositBtn');
+  try {
+    await runTx(() => signerContract.depositCredit({ value: ethers.parseEther(amount) }), { pending: 'Depositing…', success: 'Credit deposited', button: btn });
+    document.getElementById('depositAmount').value = '';
+    await refreshAccountPanel();
+  } catch {}
+});
+
+document.getElementById('withdrawCreditBtn').addEventListener('click', async () => {
+  if (!requireWallet()) return;
+  const amount = document.getElementById('withdrawCreditAmount').value;
+  if (!amount || Number(amount) <= 0) return toast('Enter an amount to withdraw', 'error');
+  const btn = document.getElementById('withdrawCreditBtn');
+  try {
+    await runTx(() => signerContract.withdrawCredit(ethers.parseEther(amount)), { pending: 'Withdrawing…', success: 'Credit withdrawn', button: btn });
+    document.getElementById('withdrawCreditAmount').value = '';
+    await refreshAccountPanel();
+  } catch {}
+});
+
+document.getElementById('withdrawEarningsBtn').addEventListener('click', async () => {
+  if (!requireWallet()) return;
+  const btn = document.getElementById('withdrawEarningsBtn');
+  try {
+    await runTx(() => signerContract.withdraw(), { pending: 'Withdrawing…', success: 'Earnings withdrawn', button: btn });
+    await refreshAccountPanel();
+  } catch {}
+});
+
+function requireWallet() {
+  if (!account) {
+    toast('Connect your wallet first', 'error');
+    return false;
+  }
+  return true;
+}
+
+// ---------- call modal ----------
+
+let activeCallServiceId = null;
+
+async function openCallModal(id) {
+  const s = servicesCache.find((x) => x.id === id);
+  if (!s) return;
+  activeCallServiceId = id;
+  document.getElementById('modalServiceName').textContent = s.name;
+  document.getElementById('modalServiceDesc').textContent = s.description;
+  document.getElementById('modalPrice').textContent = fmtX1T(s.pricePerCall);
+  document.getElementById('modalStatus').textContent = '';
+
+  const creditBtn = document.getElementById('modalCallCredit');
+  if (account) {
+    const bal = await readContract.consumerBalance(account);
+    document.getElementById('modalCreditBalance').textContent = fmtX1T(bal);
+    creditBtn.disabled = bal < s.pricePerCall;
+    creditBtn.classList.toggle('opacity-40', bal < s.pricePerCall);
+  } else {
+    document.getElementById('modalCreditBalance').textContent = '0.0';
+    creditBtn.disabled = true;
+    creditBtn.classList.add('opacity-40');
+  }
+
+  document.getElementById('callModal').classList.remove('hidden');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('callModal').classList.add('hidden');
+});
+document.getElementById('callModal').addEventListener('click', (e) => {
+  if (e.target.id === 'callModal') document.getElementById('callModal').classList.add('hidden');
+});
+
+document.getElementById('modalCallCredit').addEventListener('click', async () => {
+  if (!requireWallet()) return;
+  const status = document.getElementById('modalStatus');
+  status.textContent = 'Confirm in your wallet…';
+  try {
+    await runTx(() => signerContract.callService(activeCallServiceId), { pending: 'Calling…', success: 'Call settled — receipt recorded on-chain' });
+    document.getElementById('callModal').classList.add('hidden');
+    await loadServices();
+    await refreshAccountPanel();
+  } catch {
+    status.textContent = '';
+  }
+});
+
+document.getElementById('modalCallDirect').addEventListener('click', async () => {
+  if (!requireWallet()) return;
+  const s = servicesCache.find((x) => x.id === activeCallServiceId);
+  const status = document.getElementById('modalStatus');
+  status.textContent = 'Confirm in your wallet…';
+  try {
+    await runTx(() => signerContract.payAndCall(activeCallServiceId, { value: s.pricePerCall }), { pending: 'Paying…', success: 'Call settled — receipt recorded on-chain' });
+    document.getElementById('callModal').classList.add('hidden');
+    await loadServices();
+  } catch {
+    status.textContent = '';
+  }
+});
+
+// ---------- activity feed ----------
+
+let activityLoaded = false;
+
+async function loadActivity() {
+  if (activityLoaded) return;
+  activityLoaded = true;
+  const loadingEl = document.getElementById('activityLoading');
+  const emptyEl = document.getElementById('activityEmpty');
+  const body = document.getElementById('activityBody');
+  loadingEl.classList.remove('hidden');
+  emptyEl.classList.add('hidden');
+
+  try {
+    const events = await readContract.queryFilter(readContract.filters.CallSettled(), DEPLOY_BLOCK, 'latest');
+    const sorted = events.sort((a, b) => b.blockNumber - a.blockNumber).slice(0, 100);
+    loadingEl.classList.add('hidden');
+    emptyEl.classList.toggle('hidden', sorted.length > 0);
+
+    body.innerHTML = sorted
+      .map((ev) => {
+        const { receiptId, serviceId, consumer, payout, fee, timestamp } = ev.args;
+        const svc = servicesCache.find((s) => s.id === Number(serviceId));
+        return `
+        <tr class="hover:bg-panel2/50 transition">
+          <td class="px-4 py-3 font-mono text-xs text-slate-500">#${receiptId.toString()}</td>
+          <td class="px-4 py-3">${escapeHtml(svc ? svc.name : `service #${serviceId}`)}</td>
+          <td class="px-4 py-3 font-mono text-xs">${short(consumer)}</td>
+          <td class="px-4 py-3 text-right font-mono text-xs text-emerald-400">+${fmtX1T(payout)}</td>
+          <td class="px-4 py-3 text-right font-mono text-xs text-slate-500">${fmtX1T(fee)}</td>
+          <td class="px-4 py-3 text-right text-xs text-slate-500">${timeAgo(timestamp)}</td>
+        </tr>`;
+      })
+      .join('');
+  } catch (err) {
+    console.error(err);
+    loadingEl.classList.add('hidden');
+    toast('Could not load activity history', 'error');
+  }
+}
+
+document.getElementById('refreshActivity').addEventListener('click', () => {
+  activityLoaded = false;
+  loadActivity();
+});
+
+readContract.on('CallSettled', () => {
+  activityLoaded = false;
+  loadServices();
+  if (!document.getElementById('tab-activity').classList.contains('hidden')) loadActivity();
+});
+
+// ---------- boot ----------
+
+(async function init() {
+  renderWalletArea();
+  await loadServices();
+  document.getElementById('showInactive').addEventListener('change', renderServiceGrid);
+
+  if (window.ethereum) {
+    try {
+      const accs = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accs && accs.length) await connectWallet();
+    } catch {}
+  }
+})();

@@ -6,14 +6,15 @@ async function main() {
   // Swap in a dedicated treasury address for production.
   const feeRecipient = deployer.address;
 
-  const Tipstream = await hre.ethers.getContractFactory('Tipstream');
-  const tipstream = await Tipstream.deploy(feeRecipient);
-  await tipstream.waitForDeployment();
+  const Spigot = await hre.ethers.getContractFactory('Spigot');
+  const spigot = await Spigot.deploy(feeRecipient);
+  await spigot.waitForDeployment();
 
-  const address = await tipstream.getAddress();
-  const deployTx = tipstream.deploymentTransaction();
+  const address = await spigot.getAddress();
+  const deployTx = spigot.deploymentTransaction();
   const receipt = await deployTx.wait();
-  console.log(`Tipstream deployed to: ${address}`);
+
+  console.log(`Spigot deployed to: ${address}`);
   console.log(`Deployment block: ${receipt.blockNumber}`);
   console.log(`Fee recipient: ${feeRecipient}`);
   console.log(`View it on the explorer: https://maculatus-scan.x1eco.com/address/${address}`);

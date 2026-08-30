@@ -1,257 +1,272 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Tipstream — Get tipped, keep 97.5%</title>
-  <meta name="description" content="Creator tipping on X1 EcoChain. Every tip splits automatically on-chain: a 2.5% platform fee, the rest straight to the creator." />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <meta property="og:title" content="Tipstream" />
-  <meta property="og:description" content="Creator tipping on X1 EcoChain. Every tip splits automatically on-chain — a 2.5% platform fee, the rest straight to the creator." />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Tipstream" />
-  <meta name="twitter:description" content="Creator tipping on X1 EcoChain, split transparently on-chain." />
-
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .gradient-bg { background: radial-gradient(circle at top left, #ecfdf5, #ffffff 55%); }
-    .toast { transition: opacity 0.3s ease, transform 0.3s ease; }
-    .spinner {
-      display: inline-block; width: 0.85em; height: 0.85em; border-radius: 50%;
-      border: 2px solid currentColor; border-right-color: transparent;
-      animation: spin 0.6s linear infinite; margin-right: 0.4em; vertical-align: -0.15em;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spigot — Pay-per-call rails for AI agents on X1 EcoChain</title>
+<meta name="description" content="Spigot is on-chain pay-per-call settlement for APIs, AI agents, and machine services on X1 EcoChain. Register a service, get paid instantly per request." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚰</text></svg>" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          ink: '#0b0f14',
+          panel: '#11161d',
+          panel2: '#161d26',
+          border: '#232b36',
+          accent: '#c7f04c',
+          accent2: '#8fd13a',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { background: #0b0f14; }
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(199,240,76,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(199,240,76,0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .glow { box-shadow: 0 0 0 1px rgba(199,240,76,0.18), 0 8px 30px -12px rgba(199,240,76,0.22); }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #11161d; }
+  ::-webkit-scrollbar-thumb { background: #2a3542; border-radius: 4px; }
+  .tab-btn.active { color: #0b0f14; background: #c7f04c; }
+  .spinner { border: 2px solid rgba(255,255,255,0.2); border-top-color: #0b0f14; border-radius: 9999px; width: 14px; height: 14px; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast-enter { animation: toastIn 0.25s ease-out; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 </head>
-<body class="gradient-bg min-h-screen text-slate-900">
+<body class="bg-ink text-slate-100 font-sans min-h-screen bg-grid">
 
   <!-- Toasts -->
-  <div id="toastContainer" class="fixed top-4 right-4 z-[60] flex flex-col gap-2 items-end"></div>
+  <div id="toastHost" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-[92vw] max-w-sm"></div>
 
-  <header class="max-w-5xl mx-auto px-6 pt-10 pb-6 flex items-center justify-between">
-    <a href="./" class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">T</div>
-      <span class="font-extrabold text-lg tracking-tight">Tipstream</span>
-    </a>
-    <div class="flex items-center gap-2">
-      <button id="addNetworkBtn" class="hidden sm:inline-flex text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Add X1 EcoChain</button>
-      <button id="connectBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition">Connect Wallet</button>
+  <!-- Header -->
+  <header class="border-b border-border bg-ink/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-accent2 flex items-center justify-center text-ink font-extrabold text-lg">🚰</div>
+        <div>
+          <div class="font-extrabold text-lg leading-none tracking-tight">Spigot</div>
+          <div class="text-[11px] text-slate-500 leading-none mt-1">pay-per-call rails for agents</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="https://maculatus-scan.x1eco.com/address/0xf4b3191C7a3315F0d2B375162E3025E78B25B595" target="_blank" rel="noopener"
+           class="hidden sm:flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-full border border-border text-slate-400 hover:text-accent hover:border-accent/40 transition">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          Maculatus Testnet · 10778
+        </a>
+        <div id="walletArea"></div>
+      </div>
     </div>
   </header>
 
-  <p class="max-w-5xl mx-auto px-6 text-sm text-slate-400 -mt-2">
-    Connected account: <span id="account" class="font-mono">not connected</span>
-  </p>
-
-  <!-- Display name: any connected wallet, fan or creator, can set one -->
-  <div id="displayNameWidget" class="hidden max-w-5xl mx-auto px-6 mt-2 flex items-center gap-2">
-    <span class="text-sm text-slate-500">Your display name: <span id="currentDisplayName" class="font-medium text-slate-700">not set</span></span>
-    <button id="editDisplayNameToggle" class="text-sm text-emerald-600 hover:text-emerald-800 transition">Set / change</button>
-  </div>
-  <div id="displayNameForm" class="hidden max-w-5xl mx-auto px-6 mt-2 flex items-center gap-2">
-    <input id="displayNameInput" maxlength="64" placeholder="How you'll appear in feeds" class="flex-1 max-w-xs border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-    <button id="saveDisplayNameBtn" class="text-sm font-medium px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition disabled:opacity-50">Save</button>
-  </div>
-
-  <!-- Withdraw widget: shown for any connected wallet with a pending balance, creator or treasury -->
-  <section id="withdrawWidget" class="hidden max-w-5xl mx-auto px-6 mt-4">
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-      <div>
-        <div class="text-xs uppercase tracking-wide text-amber-700 font-medium">Withdrawable</div>
-        <div id="withdrawAmount" class="text-xl font-extrabold text-amber-900">–</div>
+  <!-- Hero -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-6">
+    <div class="max-w-2xl">
+      <div class="inline-flex items-center gap-1.5 text-[11px] font-medium text-accent bg-accent/10 border border-accent/20 rounded-full px-2.5 py-1 mb-4">
+        an x402-pattern implementation, native to X1 EcoChain
       </div>
-      <button id="withdrawBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition disabled:opacity-50" disabled>Withdraw</button>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+        Get paid per request. <span class="text-accent">Instantly.</span> On-chain.
+      </h1>
+      <p class="mt-3 text-slate-400 leading-relaxed">
+        Register an API, model, or data feed as a paid service. Every call settles on X1 EcoChain —
+        callers pay per request, providers withdraw earnings anytime. Built for machine-to-machine
+        and AI agent payments, with a prepaid-credit mode for high-frequency callers.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-4 text-sm">
+        <div class="flex items-baseline gap-1.5"><span id="statServices" class="font-bold text-lg text-white">–</span><span class="text-slate-500">services live</span></div>
+        <div class="flex items-baseline gap-1.5"><span id="statCalls" class="font-bold text-lg text-white">–</span><span class="text-slate-500">calls settled</span></div>
+        <div class="flex items-baseline gap-1.5"><span class="font-bold text-lg text-white">2.5%</span><span class="text-slate-500">platform fee</span></div>
+      </div>
     </div>
   </section>
 
-  <!-- ===================== DISCOVER VIEW ===================== -->
-  <div id="discoverView">
-    <section class="max-w-5xl mx-auto px-6 py-10 text-center">
-      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">Get tipped. Keep 97.5%.</h1>
-      <p class="mt-4 text-lg text-slate-600 max-w-xl mx-auto">
-        Instant, on-chain tips for creators on X1 EcoChain. Every tip splits automatically —
-        a 2.5% platform fee, the rest lands straight in your wallet.
-      </p>
-    </section>
+  <!-- Tabs -->
+  <nav class="max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="flex gap-1 p-1 bg-panel border border-border rounded-xl w-full sm:w-fit overflow-x-auto">
+      <button data-tab="browse" class="tab-btn active whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">Browse Services</button>
+      <button data-tab="provider" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">Provider Dashboard</button>
+      <button data-tab="account" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">My Account</button>
+      <button data-tab="activity" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">Activity</button>
+    </div>
+  </nav>
 
-    <section class="max-w-5xl mx-auto px-6">
-      <div id="creatorPanel" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-10">
-        <div id="registerView">
-          <h2 class="font-bold text-lg">Become a creator</h2>
-          <p class="text-sm text-slate-500 mt-1 mb-4">Connect your wallet, then set up your page in one transaction.</p>
-          <div class="grid sm:grid-cols-2 gap-3">
-            <div>
-              <input id="nameInput" maxlength="64" placeholder="Your name" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              <div class="text-xs text-slate-400 mt-1 text-right"><span id="nameCount">0</span>/64</div>
-            </div>
-            <div>
-              <input id="bioInput" maxlength="280" placeholder="One-line bio" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              <div class="text-xs text-slate-400 mt-1 text-right"><span id="bioCount">0</span>/280</div>
-            </div>
-          </div>
-          <button id="registerBtn" class="mt-2 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50">Create my page</button>
-        </div>
-        <div id="myStatsView" class="hidden">
-          <div class="flex items-center justify-between">
-            <h2 class="font-bold text-lg">Your page</h2>
-            <button id="editProfileToggle" class="text-sm text-slate-500 hover:text-slate-900 transition">Edit profile</button>
-          </div>
-          <div class="grid sm:grid-cols-3 gap-4 mt-4">
-            <div class="bg-emerald-50 rounded-xl p-4">
-              <div class="text-xs uppercase tracking-wide text-emerald-700 font-medium">Total received</div>
-              <div id="myTotal" class="text-2xl font-extrabold text-emerald-900 mt-1">–</div>
-            </div>
-            <div class="bg-slate-50 rounded-xl p-4">
-              <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Tips received</div>
-              <div id="myTipCount" class="text-2xl font-extrabold text-slate-900 mt-1">–</div>
-            </div>
-            <div class="bg-slate-50 rounded-xl p-4">
-              <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Platform fee</div>
-              <div class="text-2xl font-extrabold text-slate-900 mt-1">2.5%</div>
-            </div>
-          </div>
-          <div class="mt-4 flex items-center gap-2">
-            <input id="myShareLink" readonly class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono bg-slate-50 text-slate-500" />
-            <button id="copyShareLinkBtn" class="text-sm font-medium px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Copy link</button>
-          </div>
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
-          <div id="editProfileForm" class="hidden mt-4 pt-4 border-t border-slate-100">
-            <div class="grid sm:grid-cols-2 gap-3">
-              <div>
-                <input id="editNameInput" maxlength="64" placeholder="Name" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                <div class="text-xs text-slate-400 mt-1 text-right"><span id="editNameCount">0</span>/64</div>
-              </div>
-              <div>
-                <input id="editBioInput" maxlength="280" placeholder="Bio" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                <div class="text-xs text-slate-400 mt-1 text-right"><span id="editBioCount">0</span>/280</div>
-              </div>
-            </div>
-            <button id="saveProfileBtn" class="mt-2 text-sm font-medium px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition disabled:opacity-50">Save changes</button>
-          </div>
-
-          <div class="mt-4 pt-4 border-t border-slate-100">
-            <div class="flex items-center justify-between">
-              <h3 class="font-semibold text-sm">Funding goal</h3>
-              <button id="editGoalToggle" class="text-sm text-slate-500 hover:text-slate-900 transition">Set goal</button>
-            </div>
-            <p id="myGoalSummary" class="text-sm text-slate-500 mt-1">No goal set.</p>
-            <div id="editGoalForm" class="hidden mt-2">
-              <div class="grid sm:grid-cols-2 gap-3">
-                <input id="goalTargetInput" placeholder="Target in X1T, e.g. 100" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                <input id="goalDescInput" maxlength="140" placeholder="What it's for" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              </div>
-              <button id="saveGoalBtn" class="mt-2 text-sm font-medium px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition disabled:opacity-50">Save goal</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <!-- Browse tab -->
+    <section id="tab-browse" class="tab-panel fade-in">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-bold text-lg">Discover creators</h2>
-        <button id="refreshBtn" class="text-sm text-slate-500 hover:text-slate-900 transition">Refresh</button>
+        <h2 class="font-bold text-xl">Live Services</h2>
+        <label class="flex items-center gap-2 text-xs text-slate-400 select-none cursor-pointer">
+          <input type="checkbox" id="showInactive" class="rounded border-border bg-panel2 accent-accent" />
+          show inactive
+        </label>
       </div>
-      <div class="flex flex-col sm:flex-row gap-2 mb-4">
-        <input id="searchInput" placeholder="Search creators by name…" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-        <select id="sortSelect" class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
-          <option value="top">Top earning</option>
-          <option value="newest">Newest</option>
-          <option value="tips">Most tips</option>
-        </select>
-      </div>
-      <div id="creatorGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        <p class="text-sm text-slate-400 col-span-full">Loading creators…</p>
-      </div>
+      <div id="serviceGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div id="serviceEmpty" class="hidden text-center py-16 text-slate-500 text-sm">No services registered yet. Be the first — head to the Provider Dashboard.</div>
+    </section>
 
-      <h2 class="font-bold text-lg mb-4">Recent activity</h2>
-      <div id="activityFeed" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100 mb-16">
-        <p class="text-sm text-slate-400 p-5">Loading…</p>
+    <!-- Provider tab -->
+    <section id="tab-provider" class="tab-panel hidden">
+      <div class="grid lg:grid-cols-5 gap-6">
+        <div class="lg:col-span-2">
+          <div class="bg-panel border border-border rounded-2xl p-5">
+            <h3 class="font-bold mb-1">Register a service</h3>
+            <p class="text-xs text-slate-500 mb-4">List an API, model endpoint, or data feed. Callers pay per call; you withdraw anytime.</p>
+            <form id="registerForm" class="space-y-3">
+              <div>
+                <div class="flex justify-between text-xs text-slate-400 mb-1"><span>Service name</span><span id="nameCount">0/64</span></div>
+                <input required id="svcName" maxlength="64" placeholder="Weather Oracle API" class="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
+              </div>
+              <div>
+                <div class="flex justify-between text-xs text-slate-400 mb-1"><span>Description</span><span id="descCount">0/280</span></div>
+                <textarea required id="svcDesc" maxlength="280" rows="3" placeholder="Real-time weather data for agents, updated every 60 seconds." class="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60 resize-none"></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <div class="text-xs text-slate-400 mb-1">Price per call (X1T)</div>
+                  <input required id="svcPrice" type="number" min="0" step="0.0001" placeholder="0.05" class="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
+                </div>
+                <div>
+                  <div class="text-xs text-slate-400 mb-1">Daily call cap</div>
+                  <input id="svcMaxCalls" type="number" min="0" step="1" placeholder="0 = unlimited" class="w-full bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
+                </div>
+              </div>
+              <button type="submit" id="registerBtn" class="w-full bg-accent text-ink font-semibold text-sm rounded-lg py-2.5 hover:bg-lime-300 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Register service
+              </button>
+            </form>
+          </div>
+        </div>
+        <div class="lg:col-span-3">
+          <h3 class="font-bold mb-3">My services</h3>
+          <div id="myServices" class="space-y-3"></div>
+          <div id="myServicesEmpty" class="hidden text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
+            You haven't registered any services yet.
+          </div>
+          <div id="myServicesConnect" class="text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
+            Connect your wallet to see and manage your services.
+          </div>
+        </div>
       </div>
     </section>
-  </div>
 
-  <!-- ===================== CREATOR PROFILE VIEW ===================== -->
-  <div id="profileView" class="hidden">
-    <section class="max-w-3xl mx-auto px-6 py-10">
-      <a href="./" class="text-sm text-slate-500 hover:text-slate-900 transition">&larr; All creators</a>
-      <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm mt-4 text-center">
-        <div id="profileAvatar" class="w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl mx-auto">?</div>
-        <h1 id="profileName" class="text-2xl font-extrabold mt-4">–</h1>
-        <p id="profileAddr" class="text-xs text-slate-400 font-mono mt-1">–</p>
-        <p class="text-sm text-slate-500 mt-1"><span id="profileFollowerCount">0</span> follower(s)</p>
-        <p id="profileBio" class="text-slate-600 mt-3">–</p>
-
-        <div id="goalSection" class="hidden mt-4 max-w-xs mx-auto text-left">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-600" id="goalDescText">Goal</span>
-            <span class="text-slate-500" id="goalProgressText">0%</span>
-          </div>
-          <div class="w-full bg-slate-100 rounded-full h-2 mt-1">
-            <div id="goalProgressBar" class="bg-emerald-500 h-2 rounded-full" style="width: 0%"></div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mt-6 max-w-xs mx-auto">
-          <div class="bg-emerald-50 rounded-xl p-4">
-            <div class="text-xs uppercase tracking-wide text-emerald-700 font-medium">Total received</div>
-            <div id="profileTotal" class="text-xl font-extrabold text-emerald-900 mt-1">–</div>
-          </div>
-          <div class="bg-slate-50 rounded-xl p-4">
-            <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">Tips</div>
-            <div id="profileTipCount" class="text-xl font-extrabold text-slate-900 mt-1">–</div>
-          </div>
-        </div>
-        <div class="flex gap-2 justify-center mt-6">
-          <button id="profileTipBtn" class="text-sm font-medium px-6 py-3 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Send a tip</button>
-          <button id="profileFollowBtn" class="hidden text-sm font-medium px-6 py-3 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition">Follow</button>
-        </div>
+    <!-- Account tab -->
+    <section id="tab-account" class="tab-panel hidden">
+      <div id="accountConnect" class="text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
+        Connect your wallet to manage your account.
       </div>
+      <div id="accountBody" class="hidden grid md:grid-cols-2 gap-6">
+        <div class="bg-panel border border-border rounded-2xl p-5">
+          <h3 class="font-bold mb-1">Display name</h3>
+          <p class="text-xs text-slate-500 mb-3">Shown instead of your raw address across Spigot.</p>
+          <form id="nameForm" class="flex gap-2">
+            <input id="displayNameInput" maxlength="64" placeholder="Agent-007" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
+            <button type="submit" id="nameBtn" class="bg-panel2 border border-border hover:border-accent/60 font-semibold text-sm rounded-lg px-4 disabled:opacity-50">Save</button>
+          </form>
+        </div>
 
-      <div id="topSupportersSection" class="hidden">
-        <h2 class="font-bold text-lg mt-10 mb-4">Top supporters</h2>
-        <div id="topSupporters" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100"></div>
-      </div>
+        <div class="bg-panel border border-border rounded-2xl p-5">
+          <h3 class="font-bold mb-1">Prepaid credit</h3>
+          <p class="text-xs text-slate-500 mb-3">Deposit once, call any service without a per-call transaction prompt.</p>
+          <div class="text-2xl font-extrabold font-mono mb-3"><span id="creditBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
+          <div class="flex gap-2">
+            <input id="depositAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
+            <button id="depositBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 hover:bg-lime-300 disabled:opacity-50">Deposit</button>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <input id="withdrawCreditAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
+            <button id="withdrawCreditBtn" class="bg-panel2 border border-border hover:border-accent/60 font-semibold text-sm rounded-lg px-4 disabled:opacity-50">Withdraw</button>
+          </div>
+        </div>
 
-      <h2 class="font-bold text-lg mt-10 mb-4">Recent tips</h2>
-      <div id="profileFeed" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100">
-        <p class="text-sm text-slate-400 p-5">Loading…</p>
+        <div class="bg-panel border border-border rounded-2xl p-5 md:col-span-2">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-bold">Withdrawable earnings</h3>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">Accumulated from services you provide, or platform fees if this is the fee-recipient address.</p>
+          <div class="flex items-center justify-between">
+            <div class="text-2xl font-extrabold font-mono"><span id="earningsBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
+            <button id="withdrawEarningsBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-5 py-2 hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed">Withdraw all</button>
+          </div>
+        </div>
       </div>
     </section>
-  </div>
 
-  <!-- Collapsible technical log, for transparency without cluttering the main UX -->
-  <div class="max-w-5xl mx-auto px-6 pb-16">
-    <details>
-      <summary class="text-xs text-slate-400 cursor-pointer hover:text-slate-600 transition">Transaction log</summary>
-      <div id="log" class="mt-2 text-xs font-mono text-slate-400 whitespace-pre-wrap bg-slate-50 rounded-lg p-3"></div>
-    </details>
-  </div>
+    <!-- Activity tab -->
+    <section id="tab-activity" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-xl">Recent settlements</h2>
+        <button id="refreshActivity" class="text-xs px-3 py-1.5 rounded-lg border border-border text-slate-400 hover:text-accent hover:border-accent/40">Refresh</button>
+      </div>
+      <div class="overflow-x-auto border border-border rounded-2xl">
+        <table class="w-full text-sm">
+          <thead class="bg-panel2 text-slate-400 text-xs uppercase tracking-wide">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium">Receipt</th>
+              <th class="text-left px-4 py-3 font-medium">Service</th>
+              <th class="text-left px-4 py-3 font-medium">Consumer</th>
+              <th class="text-right px-4 py-3 font-medium">Payout</th>
+              <th class="text-right px-4 py-3 font-medium">Fee</th>
+              <th class="text-right px-4 py-3 font-medium">When</th>
+            </tr>
+          </thead>
+          <tbody id="activityBody" class="divide-y divide-border"></tbody>
+        </table>
+        <div id="activityEmpty" class="hidden text-center py-16 text-slate-500 text-sm">No calls settled yet.</div>
+        <div id="activityLoading" class="text-center py-16 text-slate-500 text-sm">Loading on-chain history…</div>
+      </div>
+    </section>
+  </main>
 
-  <!-- Tip modal -->
-  <div id="tipModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center px-6 z-50">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-      <h3 class="font-bold text-lg">Send a tip to <span id="tipModalName"></span></h3>
-      <input id="tipAmount" placeholder="Amount in X1T, e.g. 1" class="mt-4 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-      <div class="flex gap-2 mt-2">
-        <button type="button" data-amount="1" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">1 X1T</button>
-        <button type="button" data-amount="5" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">5 X1T</button>
-        <button type="button" data-amount="10" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">10 X1T</button>
-        <button type="button" data-amount="25" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">25 X1T</button>
+  <footer class="max-w-6xl mx-auto px-4 sm:px-6 py-10 text-center text-xs text-slate-600 border-t border-border mt-8">
+    Spigot runs entirely on-chain on X1 EcoChain (Maculatus testnet).
+    Contract <a class="text-slate-500 hover:text-accent underline decoration-dotted" href="https://maculatus-scan.x1eco.com/address/0xf4b3191C7a3315F0d2B375162E3025E78B25B595" target="_blank" rel="noopener">0xf4b3…B595</a>.
+  </footer>
+
+  <!-- Call modal -->
+  <div id="callModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-panel border border-border rounded-2xl w-full max-w-md p-5 glow">
+      <div class="flex items-start justify-between mb-1">
+        <h3 class="font-bold text-lg" id="modalServiceName">Call service</h3>
+        <button id="modalClose" class="text-slate-500 hover:text-white">✕</button>
       </div>
-      <input id="tipMessage" maxlength="280" placeholder="Message (optional)" class="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-      <div class="text-xs text-slate-400 mt-1 text-right"><span id="tipMessageCount">0</span>/280</div>
-      <div class="flex gap-2 mt-2">
-        <button id="tipCancelBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Cancel</button>
-        <button id="tipSendBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50">Send tip</button>
+      <p class="text-xs text-slate-500 mb-4" id="modalServiceDesc"></p>
+      <div class="text-sm text-slate-400 mb-4">Price per call: <span class="text-white font-mono" id="modalPrice"></span> X1T</div>
+      <div class="space-y-2">
+        <button id="modalCallCredit" class="w-full text-left bg-panel2 border border-border hover:border-accent/60 rounded-lg px-4 py-3 transition">
+          <div class="font-semibold text-sm">Pay from prepaid credit</div>
+          <div class="text-xs text-slate-500">Balance: <span id="modalCreditBalance">0.0</span> X1T · no wallet prompt</div>
+        </button>
+        <button id="modalCallDirect" class="w-full text-left bg-panel2 border border-border hover:border-accent/60 rounded-lg px-4 py-3 transition">
+          <div class="font-semibold text-sm">Pay directly this call</div>
+          <div class="text-xs text-slate-500">One transaction, exact price sent as value</div>
+        </button>
       </div>
+      <div id="modalStatus" class="mt-3 text-xs text-center text-slate-500"></div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

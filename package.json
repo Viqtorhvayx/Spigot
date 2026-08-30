@@ -1,8 +1,8 @@
 {
-  "name": "tipstream",
+  "name": "spigot",
   "version": "0.1.0",
   "private": true,
-  "description": "Tipstream — creator tipping on X1 EcoChain. Every tip splits automatically on-chain: a small platform fee, the rest straight to the creator.",
+  "description": "Spigot — pay-per-call settlement rails for APIs, AI agents, and machine services on X1 EcoChain. An X1-native implementation of the x402 (HTTP 402 Payment Required) pattern, with a prepaid-credit mode for high-frequency agent callers.",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
