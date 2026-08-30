@@ -2,17 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Tipstream</title>
+  <title>Tipstream — Get tipped, keep 97.5%</title>
+  <meta name="description" content="Creator tipping on X1 EcoChain. Every tip splits automatically on-chain: a 2.5% platform fee, the rest straight to the creator." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta property="og:title" content="Tipstream" />
+  <meta property="og:description" content="Creator tipping on X1 EcoChain. Every tip splits automatically on-chain — a 2.5% platform fee, the rest straight to the creator." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Tipstream" />
+  <meta name="twitter:description" content="Creator tipping on X1 EcoChain, split transparently on-chain." />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
     .gradient-bg { background: radial-gradient(circle at top left, #ecfdf5, #ffffff 55%); }
+    .toast { transition: opacity 0.3s ease, transform 0.3s ease; }
+    .spinner {
+      display: inline-block; width: 0.85em; height: 0.85em; border-radius: 50%;
+      border: 2px solid currentColor; border-right-color: transparent;
+      animation: spin 0.6s linear infinite; margin-right: 0.4em; vertical-align: -0.15em;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="gradient-bg min-h-screen text-slate-900">
+
+  <!-- Toasts -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-[60] flex flex-col gap-2 items-end"></div>
 
   <header class="max-w-5xl mx-auto px-6 pt-10 pb-6 flex items-center justify-between">
     <a href="./" class="flex items-center gap-2">
@@ -36,7 +55,7 @@
         <div class="text-xs uppercase tracking-wide text-amber-700 font-medium">Withdrawable</div>
         <div id="withdrawAmount" class="text-xl font-extrabold text-amber-900">–</div>
       </div>
-      <button id="withdrawBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition" disabled>Withdraw</button>
+      <button id="withdrawBtn" class="text-sm font-medium px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition disabled:opacity-50" disabled>Withdraw</button>
     </div>
   </section>
 
@@ -56,13 +75,22 @@
           <h2 class="font-bold text-lg">Become a creator</h2>
           <p class="text-sm text-slate-500 mt-1 mb-4">Connect your wallet, then set up your page in one transaction.</p>
           <div class="grid sm:grid-cols-2 gap-3">
-            <input id="nameInput" placeholder="Your name" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            <input id="bioInput" placeholder="One-line bio" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            <div>
+              <input id="nameInput" maxlength="64" placeholder="Your name" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              <div class="text-xs text-slate-400 mt-1 text-right"><span id="nameCount">0</span>/64</div>
+            </div>
+            <div>
+              <input id="bioInput" maxlength="280" placeholder="One-line bio" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              <div class="text-xs text-slate-400 mt-1 text-right"><span id="bioCount">0</span>/280</div>
+            </div>
           </div>
-          <button id="registerBtn" class="mt-4 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Create my page</button>
+          <button id="registerBtn" class="mt-2 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50">Create my page</button>
         </div>
         <div id="myStatsView" class="hidden">
-          <h2 class="font-bold text-lg">Your page</h2>
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-lg">Your page</h2>
+            <button id="editProfileToggle" class="text-sm text-slate-500 hover:text-slate-900 transition">Edit profile</button>
+          </div>
           <div class="grid sm:grid-cols-3 gap-4 mt-4">
             <div class="bg-emerald-50 rounded-xl p-4">
               <div class="text-xs uppercase tracking-wide text-emerald-700 font-medium">Total received</div>
@@ -80,6 +108,20 @@
           <div class="mt-4 flex items-center gap-2">
             <input id="myShareLink" readonly class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono bg-slate-50 text-slate-500" />
             <button id="copyShareLinkBtn" class="text-sm font-medium px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Copy link</button>
+          </div>
+
+          <div id="editProfileForm" class="hidden mt-4 pt-4 border-t border-slate-100">
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div>
+                <input id="editNameInput" maxlength="64" placeholder="Name" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                <div class="text-xs text-slate-400 mt-1 text-right"><span id="editNameCount">0</span>/64</div>
+              </div>
+              <div>
+                <input id="editBioInput" maxlength="280" placeholder="Bio" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                <div class="text-xs text-slate-400 mt-1 text-right"><span id="editBioCount">0</span>/280</div>
+              </div>
+            </div>
+            <button id="saveProfileBtn" class="mt-2 text-sm font-medium px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-700 transition disabled:opacity-50">Save changes</button>
           </div>
         </div>
       </div>
@@ -104,7 +146,7 @@
     <section class="max-w-3xl mx-auto px-6 py-10">
       <a href="./" class="text-sm text-slate-500 hover:text-slate-900 transition">&larr; All creators</a>
       <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm mt-4 text-center">
-        <div id="profileAvatar" class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-2xl mx-auto">?</div>
+        <div id="profileAvatar" class="w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl mx-auto">?</div>
         <h1 id="profileName" class="text-2xl font-extrabold mt-4">–</h1>
         <p id="profileAddr" class="text-xs text-slate-400 font-mono mt-1">–</p>
         <p id="profileBio" class="text-slate-600 mt-3">–</p>
@@ -128,17 +170,24 @@
     </section>
   </div>
 
-  <div id="log" class="max-w-5xl mx-auto px-6 pb-16 text-xs font-mono text-slate-400 whitespace-pre-wrap"></div>
+  <!-- Collapsible technical log, for transparency without cluttering the main UX -->
+  <div class="max-w-5xl mx-auto px-6 pb-16">
+    <details>
+      <summary class="text-xs text-slate-400 cursor-pointer hover:text-slate-600 transition">Transaction log</summary>
+      <div id="log" class="mt-2 text-xs font-mono text-slate-400 whitespace-pre-wrap bg-slate-50 rounded-lg p-3"></div>
+    </details>
+  </div>
 
   <!-- Tip modal -->
   <div id="tipModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center px-6 z-50">
     <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
       <h3 class="font-bold text-lg">Send a tip to <span id="tipModalName"></span></h3>
       <input id="tipAmount" placeholder="Amount in X1T, e.g. 1" class="mt-4 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-      <input id="tipMessage" placeholder="Message (optional)" class="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-      <div class="flex gap-2 mt-4">
+      <input id="tipMessage" maxlength="280" placeholder="Message (optional)" class="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+      <div class="text-xs text-slate-400 mt-1 text-right"><span id="tipMessageCount">0</span>/280</div>
+      <div class="flex gap-2 mt-2">
         <button id="tipCancelBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Cancel</button>
-        <button id="tipSendBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Send tip</button>
+        <button id="tipSendBtn" class="flex-1 text-sm font-medium px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50">Send tip</button>
       </div>
     </div>
   </div>

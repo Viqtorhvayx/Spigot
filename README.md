@@ -2,9 +2,9 @@
 
 Creator tipping on X1 EcoChain. A fan sends a tip, the contract splits it automatically — a 2.5% platform fee, the rest owed to the creator, withdrawable instantly and verifiably on-chain.
 
-**Live on the Maculatus testnet:** [`0xB0C1F54c8E87Ef003794cB40Afac43A384d32eb7`](https://maculatus-scan.x1eco.com/address/0xB0C1F54c8E87Ef003794cB40Afac43A384d32eb7)
+**Live on the Maculatus testnet:** [`0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1`](https://maculatus-scan.x1eco.com/address/0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1)
 
-The full flow has been verified live, not just in local tests: a creator registered from one wallet, a fan sent a 2 X1T tip from a separate wallet, the contract credited the creator `1.95 X1T` (97.5%) as a pending withdrawal, and the creator then withdrew it — their wallet balance increased by exactly that amount, net of gas. Confirmed by wallet balance changes and on-chain contract state, not assumed.
+The full flow has been verified live, end to end, not assumed from tests: a creator registered, updated their name and bio (`updateProfile`), received a 1.5 X1T tip from a separate wallet, had `1.4625 X1T` (97.5%) correctly credited as a pending withdrawal, and withdrew it — wallet balance increased by exactly that amount, net of gas. A second withdrawal attempt correctly reverted. Every number above was read back from the chain, not computed locally and hoped to match.
 
 ## Why this
 
@@ -14,17 +14,23 @@ Grant reviewers reward two things above all: real users and real revenue. Tipstr
 
 `contracts/Tipstream.sol`:
 
-- `registerCreator(string name, string bio)` — one-time page setup per address.
+- `registerCreator(string name, string bio)` — one-time page creation.
+- `updateProfile(string name, string bio)` — change your name/bio afterward. Stats and tip history are untouched.
 - `tip(address creator, string message) payable` — splits `msg.value`: 2.5% credited to the immutable `feeRecipient`, 97.5% credited to the creator, both as **pending withdrawals**, not pushed immediately.
-- `withdraw()` — pulls your full pending balance to your wallet. Anyone with a nonzero balance can call it — creators and the fee recipient use the same function.
+- `withdraw()` — pulls your full pending balance to your wallet, guarded against reentrancy. Anyone with a nonzero balance can call it — creators and the fee recipient use the same function.
 - `creators(address)` — public getter for a creator's profile and stats (`totalReceived`, `tipCount`).
 - `pendingWithdrawals(address)` — how much an address can currently withdraw.
 - `getCreators()` / `creatorCount()` — for building the discovery grid.
 - `TipSent` event carries `from`, `to`, `payout`, `fee`, `message`, and `timestamp` — the frontend's activity feeds are built entirely from this, no extra storage needed.
 
-**Why pull payments, not push:** the first version sent funds directly during `tip()`. That's simple but fragile — if a creator's address can't receive funds (a bad `receive()`, a full/broken contract wallet), it blocks their tips entirely and can revert the fan's transaction too. Pull payments (`tip()` only credits a balance; `withdraw()` moves it) mean a broken recipient only affects themselves, never fans or other creators. This is the standard security pattern for handling other people's money on-chain.
+**Design choices worth knowing:**
 
-7 tests cover registration + duplicate rejection, tipping an unregistered address, a zero-value tip, the exact fee split into pending balances, withdrawing (and being unable to double-withdraw), multi-tip accumulation, and multi-creator tracking.
+- **Pull payments, not push.** `tip()` only credits a balance; `withdraw()` moves it. A broken recipient (bad `receive()`, a full contract wallet) can only ever block themselves, never a fan's transaction or another creator's tips. Standard practice for handling other people's money on-chain.
+- **Custom errors, not require strings.** Every revert (`NameTooLong`, `CreatorNotRegistered`, `NothingToWithdraw`, etc.) is a named custom error — cheaper on gas than string reverts and just as readable in a trace.
+- **Bounded input lengths.** Names cap at 64 bytes, bios and tip messages at 280 — prevents anyone bloating contract storage or griefing gas costs with huge strings.
+- **Explicit reentrancy guard on `withdraw()`.** The checks-effects-interactions ordering already made this safe, but the guard is there as defense in depth, not decoration.
+
+14 tests cover registration (including the length limits), profile updates, tipping (including message length and unregistered-recipient rejection), the exact fee split into pending balances, withdrawing (by both a creator and the fee recipient, and being unable to double-withdraw), and multi-creator tracking.
 
 ## Setup
 
@@ -47,11 +53,16 @@ The deploy script sets the deploying wallet as the fee recipient and prints the 
 
 ## Frontend
 
-`frontend/index.html` — a real designed UI (Tailwind, not unstyled HTML):
+`frontend/index.html` — a real designed UI (Tailwind, not unstyled HTML), built to feel like a product rather than a demo:
 
 - **Discover page** — hero, a "become a creator" panel that becomes a stats + share-link panel once registered, a creator grid, and a global recent-activity feed built from `TipSent` events.
-- **Shareable creator pages** — `?creator=0x...` renders a dedicated profile (name, bio, stats, a big Tip button, and that creator's own tip history). This is the actual link a creator would share, not just a card on a homepage.
+- **Shareable creator pages** — `?creator=0x...` renders a dedicated profile (name, bio, stats, a big Tip button, and that creator's own tip history). This is the actual link a creator would share, not just a card on a homepage. Sets social meta tags and updates the tab title.
 - **Withdraw widget** — appears for any connected wallet with a nonzero pending balance (creator or platform treasury) and calls `withdraw()` directly.
+- **Edit profile** — creators can update their name/bio in place from their stats panel.
+- **Toast notifications** for every action (connect, register, tip, withdraw, errors), instead of a raw debug dump — a collapsible "Transaction log" still exists underneath for anyone who wants to see the actual tx hashes.
+- **Loading states** on every transaction button (spinner + label, disabled mid-flight) so it's never ambiguous whether a click registered.
+- **Character counters** on every text input, matching the contract's actual on-chain limits (64/280/280).
+- **Deterministic per-address avatar colors** — each creator gets a stable color from a small curated palette instead of one flat brand color everywhere.
 
 Already pointed at the live contract above.
 
@@ -60,6 +71,7 @@ Already pointed at the live contract above.
 - **No content-gating**: this is tipping only — no paywalled content, subscriptions, or perks. That's a deliberate v1 scope cut (secure content-gating needs real infrastructure), not an oversight.
 - **LoopX already exists** in this space on X1 EcoChain. This project competes on execution, not on being first — be upfront about that in any pitch rather than implying it's unclaimed territory.
 - **Activity feed queries the full event range** from deployment to latest block on every load. Fine at current volume; would need pagination or an indexer (e.g. subgraph-style) if tip volume grew large.
+- **Social meta tags are static**, not per-creator. A shared `?creator=` link updates the browser tab title via JS, but crawlers that don't execute JS (most link-preview bots) will still see the generic Tipstream description, not that creator's name/bio. True per-creator previews need server-side rendering — out of scope for a static site.
 
 ## Network reference
 

@@ -1,6 +1,6 @@
 // Live on the Maculatus testnet — see ../README.md
-const CONTRACT_ADDRESS = '0xB0C1F54c8E87Ef003794cB40Afac43A384d32eb7';
-const DEPLOY_BLOCK = 10240377;
+const CONTRACT_ADDRESS = '0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1';
+const DEPLOY_BLOCK = 10240887;
 
 const X1_TESTNET = {
   chainId: '0x2A1A', // 10778 in hex
@@ -12,6 +12,7 @@ const X1_TESTNET = {
 
 const ABI = [
   'function registerCreator(string name, string bio) external',
+  'function updateProfile(string name, string bio) external',
   'function tip(address creator, string message) external payable',
   'function withdraw() external',
   'function pendingWithdrawals(address) view returns (uint256)',
@@ -21,6 +22,19 @@ const ABI = [
   'event TipSent(address indexed from, address indexed to, uint256 payout, uint256 fee, string message, uint256 timestamp)',
 ];
 
+// A small, deliberately chosen palette — every address gets a stable color
+// from this set rather than a single flat brand color everywhere.
+const AVATAR_PALETTE = [
+  'bg-emerald-100 text-emerald-700',
+  'bg-blue-100 text-blue-700',
+  'bg-purple-100 text-purple-700',
+  'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700',
+  'bg-cyan-100 text-cyan-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-teal-100 text-teal-700',
+];
+
 let account = null;
 let pendingTipTarget = null;
 let nameByAddress = {}; // built from the creator list, used to label the activity feed
@@ -28,9 +42,40 @@ let nameByAddress = {}; // built from the creator list, used to label the activi
 const params = new URLSearchParams(location.search);
 const profileAddress = params.get('creator');
 
+// ---------- small UI helpers ----------
+
+function toast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const colors = {
+    info: 'bg-slate-900 text-white',
+    success: 'bg-emerald-500 text-white',
+    error: 'bg-red-500 text-white',
+  };
+  const el = document.createElement('div');
+  el.className = `toast ${colors[type]} px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-4px)';
+    setTimeout(() => el.remove(), 300);
+  }, 4000);
+}
+
 const log = (msg) => {
-  document.getElementById('log').textContent += `${msg}\n`;
+  const el = document.getElementById('log');
+  el.textContent += `${msg}\n`;
+  el.scrollTop = el.scrollHeight;
 };
+
+function wireCounter(inputId, countId) {
+  const input = document.getElementById(inputId);
+  const count = document.getElementById(countId);
+  if (!input || !count) return;
+  input.addEventListener('input', () => {
+    count.textContent = input.value.length;
+  });
+}
 
 const getProvider = () => {
   if (!window.ethereum) throw new Error('No wallet found. Install MetaMask.');
@@ -44,6 +89,8 @@ const getReadContract = () => {
 
 const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
+const avatarColor = (addr) => AVATAR_PALETTE[parseInt(addr.slice(2, 4), 16) % AVATAR_PALETTE.length];
+
 const timeAgo = (unixSeconds) => {
   const seconds = Math.floor(Date.now() / 1000) - Number(unixSeconds);
   if (seconds < 60) return `${seconds}s ago`;
@@ -51,6 +98,8 @@ const timeAgo = (unixSeconds) => {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return `${Math.floor(seconds / 86400)}d ago`;
 };
+
+// ---------- rendering ----------
 
 function renderFeed(container, events, { showTarget }) {
   if (events.length === 0) {
@@ -85,7 +134,7 @@ async function loadFeed(container, creatorFilterAddress) {
     events.reverse(); // most recent first
     renderFeed(container, events.slice(0, 20), { showTarget: !creatorFilterAddress });
   } catch (err) {
-    log(`Error loading activity: ${err.message}`);
+    toast(`Error loading activity: ${err.message}`, 'error');
   }
 }
 
@@ -131,7 +180,7 @@ async function refreshCreators() {
         (c) => `
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
         <a href="?creator=${c.addr}" class="flex items-center gap-3 hover:opacity-80 transition">
-          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">${c.name.charAt(0).toUpperCase()}</div>
+          <div class="w-10 h-10 rounded-full ${avatarColor(c.addr)} flex items-center justify-center font-bold">${c.name.charAt(0).toUpperCase()}</div>
           <div>
             <div class="font-semibold">${c.name}</div>
             <div class="text-xs text-slate-400 font-mono">${shortAddr(c.addr)}</div>
@@ -152,7 +201,7 @@ async function refreshCreators() {
 
     await loadFeed(document.getElementById('activityFeed'), null);
   } catch (err) {
-    log(`Error loading creators: ${err.message}`);
+    toast(`Error loading creators: ${err.message}`, 'error');
   }
 }
 
@@ -173,8 +222,12 @@ async function refreshMyStats() {
     document.getElementById('myTotal').textContent = `${ethers.formatEther(record.totalReceived)} X1T`;
     document.getElementById('myTipCount').textContent = record.tipCount.toString();
     document.getElementById('myShareLink').value = `${location.origin}${location.pathname}?creator=${account}`;
+    document.getElementById('editNameInput').value = record.name;
+    document.getElementById('editBioInput').value = record.bio;
+    document.getElementById('editNameCount').textContent = record.name.length;
+    document.getElementById('editBioCount').textContent = record.bio.length;
   } catch (err) {
-    log(`Error checking your page: ${err.message}`);
+    toast(`Error checking your page: ${err.message}`, 'error');
   }
 }
 
@@ -193,7 +246,11 @@ async function loadProfile(addr) {
     }
 
     nameByAddress[addr] = record.name;
-    document.getElementById('profileAvatar').textContent = record.name.charAt(0).toUpperCase();
+    document.title = `${record.name} — Tipstream`;
+
+    const avatar = document.getElementById('profileAvatar');
+    avatar.className = `w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl mx-auto ${avatarColor(addr)}`;
+    avatar.textContent = record.name.charAt(0).toUpperCase();
     document.getElementById('profileName').textContent = record.name;
     document.getElementById('profileAddr').textContent = addr;
     document.getElementById('profileBio').textContent = record.bio || 'No bio yet.';
@@ -203,7 +260,7 @@ async function loadProfile(addr) {
 
     await loadFeed(document.getElementById('profileFeed'), addr);
   } catch (err) {
-    log(`Error loading profile: ${err.message}`);
+    toast(`Error loading profile: ${err.message}`, 'error');
   }
 }
 
@@ -212,6 +269,7 @@ function openTipModal(addr, name) {
   document.getElementById('tipModalName').textContent = name;
   document.getElementById('tipAmount').value = '';
   document.getElementById('tipMessage').value = '';
+  document.getElementById('tipMessageCount').textContent = '0';
   document.getElementById('tipModal').classList.remove('hidden');
 }
 
@@ -220,17 +278,26 @@ function closeTipModal() {
   document.getElementById('tipModal').classList.add('hidden');
 }
 
+// ---------- event wiring ----------
+
 document.getElementById('connectBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('connectBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Connecting…';
   try {
     const provider = getProvider();
     const accounts = await provider.send('eth_requestAccounts', []);
     account = accounts[0];
     document.getElementById('account').textContent = account;
-    log(`Connected: ${account}`);
+    toast('Wallet connected.', 'success');
     await refreshMyStats();
     await refreshWithdrawWidget();
   } catch (err) {
-    log(`Error: ${err.message}`);
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
   }
 });
 
@@ -238,72 +305,129 @@ document.getElementById('addNetworkBtn').addEventListener('click', async () => {
   try {
     if (!window.ethereum) throw new Error('No wallet found. Install MetaMask.');
     await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [X1_TESTNET] });
-    log('X1 EcoChain testnet added to wallet.');
+    toast('X1 EcoChain testnet added to wallet.', 'success');
   } catch (err) {
-    log(`Error: ${err.message}`);
+    toast(err.message, 'error');
   }
 });
 
+wireCounter('nameInput', 'nameCount');
+wireCounter('bioInput', 'bioCount');
+wireCounter('editNameInput', 'editNameCount');
+wireCounter('editBioInput', 'editBioCount');
+wireCounter('tipMessage', 'tipMessageCount');
+
 document.getElementById('registerBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('registerBtn');
+  const original = btn.textContent;
   try {
     if (!account) throw new Error('Connect your wallet first.');
     const name = document.getElementById('nameInput').value.trim();
     const bio = document.getElementById('bioInput').value.trim();
     if (!name) throw new Error('Enter a name.');
 
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Creating…';
     const provider = getProvider();
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     const tx = await contract.registerCreator(name, bio);
-    log(`Submitted registerCreator tx: ${tx.hash}`);
+    log(`registerCreator tx: ${tx.hash}`);
     await tx.wait();
-    log('Registered.');
+    toast('Your page is live!', 'success');
     await refreshMyStats();
     await refreshCreators();
   } catch (err) {
-    log(`Error: ${err.message}`);
+    toast(err.reason || err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+});
+
+document.getElementById('editProfileToggle').addEventListener('click', () => {
+  document.getElementById('editProfileForm').classList.toggle('hidden');
+});
+
+document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('saveProfileBtn');
+  const original = btn.textContent;
+  try {
+    if (!account) throw new Error('Connect your wallet first.');
+    const name = document.getElementById('editNameInput').value.trim();
+    const bio = document.getElementById('editBioInput').value.trim();
+    if (!name) throw new Error('Name cannot be empty.');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Saving…';
+    const provider = getProvider();
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    const tx = await contract.updateProfile(name, bio);
+    log(`updateProfile tx: ${tx.hash}`);
+    await tx.wait();
+    toast('Profile updated.', 'success');
+    document.getElementById('editProfileForm').classList.add('hidden');
+    await refreshMyStats();
+    await refreshCreators();
+  } catch (err) {
+    toast(err.reason || err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
   }
 });
 
 document.getElementById('copyShareLinkBtn').addEventListener('click', () => {
   const input = document.getElementById('myShareLink');
   input.select();
-  navigator.clipboard.writeText(input.value).then(() => log('Share link copied.'));
+  navigator.clipboard.writeText(input.value).then(() => toast('Share link copied.', 'success'));
 });
 
 document.getElementById('withdrawBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('withdrawBtn');
+  const original = btn.textContent;
   try {
     if (!account) throw new Error('Connect your wallet first.');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Withdrawing…';
     const provider = getProvider();
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     const tx = await contract.withdraw();
-    log(`Submitted withdraw tx: ${tx.hash}`);
+    log(`withdraw tx: ${tx.hash}`);
     await tx.wait();
-    log('Withdrawal confirmed.');
+    toast('Withdrawal confirmed.', 'success');
     await refreshWithdrawWidget();
   } catch (err) {
-    log(`Error: ${err.message}`);
+    toast(err.reason || err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
   }
 });
 
 document.getElementById('tipCancelBtn').addEventListener('click', closeTipModal);
 
 document.getElementById('tipSendBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('tipSendBtn');
+  const original = btn.textContent;
   try {
     if (!account) throw new Error('Connect your wallet first.');
     const amount = document.getElementById('tipAmount').value.trim();
     const message = document.getElementById('tipMessage').value.trim();
     if (!amount || Number(amount) <= 0) throw new Error('Enter a tip amount.');
 
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Sending…';
     const provider = getProvider();
     const signer = await provider.getSigner();
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     const tx = await contract.tip(pendingTipTarget, message, { value: ethers.parseEther(amount) });
-    log(`Submitted tip tx: ${tx.hash}`);
+    log(`tip tx: ${tx.hash}`);
     closeTipModal();
     await tx.wait();
-    log('Tip confirmed.');
+    toast('Tip sent!', 'success');
     if (profileAddress) {
       await loadProfile(profileAddress);
     } else {
@@ -312,7 +436,10 @@ document.getElementById('tipSendBtn').addEventListener('click', async () => {
     await refreshMyStats();
     await refreshWithdrawWidget();
   } catch (err) {
-    log(`Error: ${err.message}`);
+    toast(err.reason || err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
   }
 });
 

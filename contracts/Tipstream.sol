@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/// @title Tipstream
 /// @notice Creator tipping for X1 EcoChain. Every tip splits automatically:
-/// a fixed platform fee to the protocol treasury, the rest to the creator.
-/// Funds accumulate as a withdrawable balance rather than being pushed
-/// immediately, so one recipient's misbehaving `receive()` can never block
-/// anyone else's tip.
+/// a fixed platform fee to the protocol treasury, the rest credited to the
+/// creator as a withdrawable balance — pulled, never pushed, so one broken
+/// recipient can never block anyone else's tip.
 contract Tipstream {
     struct Creator {
         string name;
@@ -16,24 +16,52 @@ contract Tipstream {
     }
 
     uint256 public constant PLATFORM_FEE_BPS = 250; // 2.5%
+    uint256 public constant MAX_NAME_LENGTH = 64;
+    uint256 public constant MAX_BIO_LENGTH = 280;
+    uint256 public constant MAX_MESSAGE_LENGTH = 280;
+
     address public immutable feeRecipient;
 
     mapping(address => Creator) public creators;
     address[] public creatorList;
     mapping(address => uint256) public pendingWithdrawals;
 
+    bool private locked;
+
     event CreatorRegistered(address indexed creator, string name, uint256 timestamp);
+    event ProfileUpdated(address indexed creator, string name, uint256 timestamp);
     event TipSent(address indexed from, address indexed to, uint256 payout, uint256 fee, string message, uint256 timestamp);
     event Withdrawn(address indexed account, uint256 amount);
 
+    error NameRequired();
+    error NameTooLong();
+    error BioTooLong();
+    error MessageTooLong();
+    error AlreadyRegistered();
+    error NotRegistered();
+    error CreatorNotRegistered();
+    error TipMustBePositive();
+    error NothingToWithdraw();
+    error TransferFailed();
+    error InvalidFeeRecipient();
+    error ReentrancyBlocked();
+
+    modifier nonReentrant() {
+        if (locked) revert ReentrancyBlocked();
+        locked = true;
+        _;
+        locked = false;
+    }
+
     constructor(address _feeRecipient) {
-        require(_feeRecipient != address(0), "Invalid fee recipient");
+        if (_feeRecipient == address(0)) revert InvalidFeeRecipient();
         feeRecipient = _feeRecipient;
     }
 
+    /// @notice One-time page creation. Use `updateProfile` afterward to change it.
     function registerCreator(string calldata name, string calldata bio) external {
-        require(bytes(name).length > 0, "Name required");
-        require(bytes(creators[msg.sender].name).length == 0, "Already registered");
+        _validateProfile(name, bio);
+        if (creators[msg.sender].registeredAt != 0) revert AlreadyRegistered();
 
         creators[msg.sender] = Creator({
             name: name,
@@ -46,9 +74,24 @@ contract Tipstream {
         emit CreatorRegistered(msg.sender, name, block.timestamp);
     }
 
+    /// @notice Update an existing page's name/bio. Stats and history are untouched.
+    function updateProfile(string calldata name, string calldata bio) external {
+        _validateProfile(name, bio);
+        Creator storage c = creators[msg.sender];
+        if (c.registeredAt == 0) revert NotRegistered();
+
+        c.name = name;
+        c.bio = bio;
+        emit ProfileUpdated(msg.sender, name, block.timestamp);
+    }
+
+    /// @notice Send a tip. Splits msg.value between the creator and the
+    /// platform fee recipient as pending withdrawals — call `withdraw()`
+    /// to actually move the funds.
     function tip(address creator, string calldata message) external payable {
-        require(msg.value > 0, "Tip must be > 0");
-        require(bytes(creators[creator].name).length > 0, "Creator not registered");
+        if (msg.value == 0) revert TipMustBePositive();
+        if (bytes(message).length > MAX_MESSAGE_LENGTH) revert MessageTooLong();
+        if (creators[creator].registeredAt == 0) revert CreatorNotRegistered();
 
         uint256 fee = (msg.value * PLATFORM_FEE_BPS) / 10000;
         uint256 payout = msg.value - fee;
@@ -63,15 +106,17 @@ contract Tipstream {
         emit TipSent(msg.sender, creator, payout, fee, message, block.timestamp);
     }
 
-    function withdraw() external {
+    /// @notice Pull your full pending balance. Works identically for
+    /// creators and the platform fee recipient.
+    function withdraw() external nonReentrant {
         uint256 amount = pendingWithdrawals[msg.sender];
-        require(amount > 0, "Nothing to withdraw");
+        if (amount == 0) revert NothingToWithdraw();
 
         pendingWithdrawals[msg.sender] = 0;
         emit Withdrawn(msg.sender, amount);
 
         (bool sent, ) = payable(msg.sender).call{value: amount}("");
-        require(sent, "Withdraw failed");
+        if (!sent) revert TransferFailed();
     }
 
     function getCreators() external view returns (address[] memory) {
@@ -80,5 +125,11 @@ contract Tipstream {
 
     function creatorCount() external view returns (uint256) {
         return creatorList.length;
+    }
+
+    function _validateProfile(string calldata name, string calldata bio) private pure {
+        if (bytes(name).length == 0) revert NameRequired();
+        if (bytes(name).length > MAX_NAME_LENGTH) revert NameTooLong();
+        if (bytes(bio).length > MAX_BIO_LENGTH) revert BioTooLong();
     }
 }
