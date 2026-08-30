@@ -350,7 +350,7 @@ async function renderServiceGrid() {
       const providerLabel = names[idx] || short(s.provider);
       const cap = s.maxCallsPerDay > 0n ? `${s.maxCallsPerDay}/day per caller` : 'no daily cap';
       return `
-      <div class="bg-panel border border-border rounded-2xl p-4 flex flex-col gap-3 ${s.active ? '' : 'opacity-50'}">
+      <div class="bg-panel border border-border rounded-2xl p-4 flex flex-col gap-3 h-full ${s.active ? '' : 'opacity-50'}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="font-bold truncate">${escapeHtml(s.name)}</div>
@@ -363,13 +363,15 @@ async function renderServiceGrid() {
             : '<span class="text-[10px] font-semibold text-slate-500 bg-slate-500/10 px-2 py-0.5 rounded-full shrink-0">INACTIVE</span>'}
         </div>
         <p class="text-xs text-slate-400 leading-relaxed line-clamp-3">${escapeHtml(s.description)}</p>
-        <div class="flex items-center justify-between text-xs text-slate-500 border-t border-border pt-3">
-          <span>${cap}</span>
-          <span>${s.totalCalls.toString()} calls</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <div class="font-mono font-bold">${fmtX1T(s.pricePerCall)} <span class="text-xs text-slate-500 font-sans font-normal">X1T/call</span></div>
-          <button data-call-id="${s.id}" class="callBtn bg-accent text-ink text-xs font-semibold rounded-lg px-3 py-1.5 hover:bg-lime-300 disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
+        <div class="mt-auto space-y-3">
+          <div class="flex items-center justify-between text-xs text-slate-500 border-t border-border pt-3">
+            <span>${cap}</span>
+            <span>${s.totalCalls.toString()} calls</span>
+          </div>
+          <div class="flex items-end justify-between">
+            <div class="font-mono font-extrabold text-xl leading-none">${fmtX1T(s.pricePerCall)}<span class="text-xs text-slate-500 font-sans font-normal ml-1">X1T/call</span></div>
+            <button data-call-id="${s.id}" class="callBtn bg-accent text-ink text-xs font-semibold rounded-lg px-3 py-1.5 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
+          </div>
         </div>
       </div>`;
     })
@@ -421,8 +423,8 @@ async function renderMyServices() {
           </div>
         </div>
         <div class="flex gap-2 mt-3">
-          <button data-edit-id="${s.id}" class="editBtn flex-1 bg-panel2 border border-border hover:border-accent/60 text-xs font-semibold rounded-lg py-2">Edit</button>
-          <button data-toggle-id="${s.id}" class="toggleBtn flex-1 bg-panel2 border border-border hover:border-accent/60 text-xs font-semibold rounded-lg py-2">${s.active ? 'Deactivate' : 'Reactivate'}</button>
+          <button data-edit-id="${s.id}" class="editBtn flex-1 bg-panel2 border border-border hover:border-accent/60 transition text-xs font-semibold rounded-lg py-2">Edit</button>
+          <button data-toggle-id="${s.id}" class="toggleBtn flex-1 bg-panel2 border border-border hover:border-accent/60 transition text-xs font-semibold rounded-lg py-2">${s.active ? 'Deactivate' : 'Reactivate'}</button>
         </div>
         <div class="editForm hidden mt-3 pt-3 border-t border-border space-y-2" id="editForm-${s.id}"></div>
       </div>`)
@@ -455,7 +457,7 @@ function toggleEditForm(id) {
       <input class="edit-price bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" type="number" min="0" step="0.0001" value="${ethers.formatEther(s.pricePerCall)}" />
       <input class="edit-cap bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" type="number" min="0" step="1" value="${s.maxCallsPerDay}" />
     </div>
-    <button class="saveEditBtn w-full bg-accent text-ink font-semibold text-sm rounded-lg py-2 hover:bg-lime-300">Save changes</button>
+    <button class="saveEditBtn w-full bg-accent text-ink font-semibold text-sm rounded-lg py-2 hover:bg-lime-300 transition">Save changes</button>
   `;
   form.querySelector('.saveEditBtn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;

@@ -122,7 +122,7 @@
         </label>
       </div>
       <div id="serviceGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      <div id="serviceEmpty" class="hidden text-center py-16 text-slate-500 text-sm">No services registered yet. Be the first — head to the Provider Dashboard.</div>
+      <div id="serviceEmpty" class="hidden text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">No services registered yet. Be the first — head to the Provider Dashboard.</div>
     </section>
 
     <!-- Provider tab -->
@@ -181,21 +181,21 @@
           <p class="text-xs text-slate-500 mb-3">Shown instead of your raw address across Spigot.</p>
           <form id="nameForm" class="flex gap-2">
             <input id="displayNameInput" maxlength="64" placeholder="Agent-007" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
-            <button type="submit" id="nameBtn" class="bg-panel2 border border-border hover:border-accent/60 font-semibold text-sm rounded-lg px-4 disabled:opacity-50">Save</button>
+            <button type="submit" id="nameBtn" class="bg-panel2 border border-border hover:border-accent/60 transition font-semibold text-sm rounded-lg px-4 py-2 disabled:opacity-50">Save</button>
           </form>
         </div>
 
         <div class="bg-panel border border-border rounded-2xl p-5">
           <h3 class="font-bold mb-1">Prepaid credit</h3>
           <p class="text-xs text-slate-500 mb-3">Deposit once, call any service without a per-call transaction prompt.</p>
-          <div class="text-2xl font-extrabold font-mono mb-3"><span id="creditBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
+          <div class="text-3xl font-extrabold font-mono leading-none mb-4"><span id="creditBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
           <div class="flex gap-2">
             <input id="depositAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
-            <button id="depositBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 hover:bg-lime-300 disabled:opacity-50">Deposit</button>
+            <button id="depositBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:bg-lime-300 transition disabled:opacity-50">Deposit</button>
           </div>
           <div class="flex gap-2 mt-2">
             <input id="withdrawCreditAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
-            <button id="withdrawCreditBtn" class="bg-panel2 border border-border hover:border-accent/60 font-semibold text-sm rounded-lg px-4 disabled:opacity-50">Withdraw</button>
+            <button id="withdrawCreditBtn" class="bg-panel2 border border-border hover:border-accent/60 transition font-semibold text-sm rounded-lg px-4 py-2 disabled:opacity-50">Withdraw</button>
           </div>
         </div>
 
@@ -205,8 +205,8 @@
           </div>
           <p class="text-xs text-slate-500 mb-3">Accumulated from services you provide, or platform fees if this is the fee-recipient address.</p>
           <div class="flex items-center justify-between">
-            <div class="text-2xl font-extrabold font-mono"><span id="earningsBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
-            <button id="withdrawEarningsBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-5 py-2 hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed">Withdraw all</button>
+            <div class="text-3xl font-extrabold font-mono leading-none"><span id="earningsBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
+            <button id="withdrawEarningsBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-5 py-2 hover:bg-lime-300 transition disabled:opacity-50 disabled:cursor-not-allowed">Withdraw all</button>
           </div>
         </div>
       </div>
@@ -251,7 +251,10 @@
         <button id="modalClose" class="text-slate-500 hover:text-white">✕</button>
       </div>
       <p class="text-xs text-slate-500 mb-4" id="modalServiceDesc"></p>
-      <div class="text-sm text-slate-400 mb-4">Price per call: <span class="text-white font-mono" id="modalPrice"></span> X1T</div>
+      <div class="flex items-baseline justify-between mb-4 pb-4 border-b border-border">
+        <span class="text-xs text-slate-500 uppercase tracking-wide">Price per call</span>
+        <span class="text-2xl font-extrabold font-mono leading-none"><span id="modalPrice"></span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></span>
+      </div>
       <div class="space-y-2">
         <button id="modalCallCredit" class="w-full text-left bg-panel2 border border-border hover:border-accent/60 rounded-lg px-4 py-3 transition">
           <div class="font-semibold text-sm">Pay from prepaid credit</div>
