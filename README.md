@@ -2,7 +2,8 @@
 
 Creator tipping on X1 EcoChain. A fan sends a tip, the contract splits it automatically — a 2.5% platform fee, the rest owed to the creator, withdrawable instantly and verifiably on-chain.
 
-**Live on the Maculatus testnet:** [`0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1`](https://maculatus-scan.x1eco.com/address/0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1)
+**Live demo:** [tipstream-iota.vercel.app](https://tipstream-iota.vercel.app)
+**Live contract on the Maculatus testnet:** [`0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1`](https://maculatus-scan.x1eco.com/address/0x2813aD535c5dffCd83Ae20caB8a3DD85776850b1)
 
 The full flow has been verified live, end to end, not assumed from tests: a creator registered, updated their name and bio (`updateProfile`), received a 1.5 X1T tip from a separate wallet, had `1.4625 X1T` (97.5%) correctly credited as a pending withdrawal, and withdrew it — wallet balance increased by exactly that amount, net of gas. A second withdrawal attempt correctly reverted. Every number above was read back from the chain, not computed locally and hoped to match.
 
@@ -65,7 +66,7 @@ The deploy script sets the deploying wallet as the fee recipient and prints the 
 - **Deterministic per-address avatar colors** — each creator gets a stable color from a small curated palette instead of one flat brand color everywhere.
 - **Search and sort** on the discover grid (by name, top earning, most tips, or newest), and a **top-supporters leaderboard** on each creator page, computed from real `TipSent` history.
 
-Already pointed at the live contract above.
+Already pointed at the live contract above. **Live demo:** [tipstream-iota.vercel.app](https://tipstream-iota.vercel.app)
 
 **A real bug caught during this round, worth documenting rather than quietly fixing:** the code that loads all creators used `{ addr, ...(await contract.creators(addr)) }` to build each row. ethers v6's `Result` objects only expose numeric indices through spread/`Object.keys()` — named fields like `.name` and `.totalReceived` are getters that spread doesn't pick up. So every creator object silently had no `name`, `bio`, `totalReceived`, or `tipCount` on it, which would have thrown once the grid tried to render. It went unnoticed for several commits because verification always used direct property access (`c.name`) in test scripts rather than the frontend's actual spread pattern — a reminder that "verified against live data" is only as good as whether the test exercises the real code path, not just equivalent-looking logic. Fixed by explicitly pulling each field off the `Result` instead of spreading it.
 
