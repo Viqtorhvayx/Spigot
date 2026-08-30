@@ -38,6 +38,7 @@ const AVATAR_PALETTE = [
 let account = null;
 let pendingTipTarget = null;
 let nameByAddress = {}; // built from the creator list, used to label the activity feed
+let allCreators = []; // cached so search/sort can re-render without refetching
 
 const params = new URLSearchParams(location.search);
 const profileAddress = params.get('creator');
@@ -133,9 +134,36 @@ async function loadFeed(container, creatorFilterAddress) {
     const events = await contract.queryFilter(filter, DEPLOY_BLOCK, 'latest');
     events.reverse(); // most recent first
     renderFeed(container, events.slice(0, 20), { showTarget: !creatorFilterAddress });
+    return events;
   } catch (err) {
     toast(`Error loading activity: ${err.message}`, 'error');
+    return [];
   }
+}
+
+function renderTopSupporters(container, section, events) {
+  if (events.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  const totals = new Map();
+  for (const e of events) {
+    totals.set(e.args.from, (totals.get(e.args.from) || 0n) + e.args.payout);
+  }
+  const ranked = [...totals.entries()].sort((a, b) => (b[1] > a[1] ? 1 : -1)).slice(0, 5);
+
+  section.classList.remove('hidden');
+  container.innerHTML = ranked
+    .map(([addr, total], i) => {
+      const label = nameByAddress[addr] || shortAddr(addr);
+      return `
+      <div class="p-4 flex items-center justify-between text-sm">
+        <span><span class="text-slate-400 font-mono mr-2">#${i + 1}</span><span class="font-medium">${label}</span></span>
+        <span class="font-semibold text-emerald-700">${ethers.formatEther(total)} X1T</span>
+      </div>`;
+    })
+    .join('');
 }
 
 async function refreshWithdrawWidget() {
@@ -156,48 +184,84 @@ async function refreshWithdrawWidget() {
   }
 }
 
+function renderCreatorGrid() {
+  const grid = document.getElementById('creatorGrid');
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+  const sortBy = document.getElementById('sortSelect').value;
+
+  let list = allCreators.filter((c) => c.name.toLowerCase().includes(query));
+
+  if (sortBy === 'top') {
+    list = [...list].sort((a, b) => (b.totalReceived > a.totalReceived ? 1 : -1));
+  } else if (sortBy === 'tips') {
+    list = [...list].sort((a, b) => Number(b.tipCount) - Number(a.tipCount));
+  } else if (sortBy === 'newest') {
+    list = [...list].sort((a, b) => Number(b.registeredAt) - Number(a.registeredAt));
+  }
+
+  if (list.length === 0) {
+    grid.innerHTML = `<p class="text-sm text-slate-400 col-span-full">${
+      allCreators.length === 0 ? 'No creators yet — be the first.' : 'No creators match your search.'
+    }</p>`;
+    return;
+  }
+
+  grid.innerHTML = list
+    .map(
+      (c) => `
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
+      <a href="?creator=${c.addr}" class="flex items-center gap-3 hover:opacity-80 transition">
+        <div class="w-10 h-10 rounded-full ${avatarColor(c.addr)} flex items-center justify-center font-bold">${c.name.charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="font-semibold">${c.name}</div>
+          <div class="text-xs text-slate-400 font-mono">${shortAddr(c.addr)}</div>
+        </div>
+      </a>
+      <p class="text-sm text-slate-500 mt-3 flex-1">${c.bio || 'No bio yet.'}</p>
+      <div class="flex items-center justify-between mt-4 text-sm">
+        <span class="text-slate-500">${ethers.formatEther(c.totalReceived)} X1T · ${c.tipCount} tip(s)</span>
+        <button data-addr="${c.addr}" data-name="${c.name}" class="tipBtn text-sm font-medium px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Tip</button>
+      </div>
+    </div>`
+    )
+    .join('');
+
+  document.querySelectorAll('.tipBtn').forEach((btn) =>
+    btn.addEventListener('click', () => openTipModal(btn.dataset.addr, btn.dataset.name))
+  );
+}
+
 async function refreshCreators() {
   try {
     const contract = getReadContract();
     const addresses = await contract.getCreators();
-    const grid = document.getElementById('creatorGrid');
 
     if (addresses.length === 0) {
-      grid.innerHTML = '<p class="text-sm text-slate-400 col-span-full">No creators yet — be the first.</p>';
+      allCreators = [];
       nameByAddress = {};
+      renderCreatorGrid();
       await loadFeed(document.getElementById('activityFeed'), null);
       return;
     }
 
-    const creators = await Promise.all(
-      addresses.map(async (addr) => ({ addr, ...(await contract.creators(addr)) }))
+    allCreators = await Promise.all(
+      addresses.map(async (addr) => {
+        // ethers v6 Result objects don't expose named fields via spread —
+        // only numeric indices — so pull each field out explicitly.
+        const c = await contract.creators(addr);
+        return {
+          addr,
+          name: c.name,
+          bio: c.bio,
+          registeredAt: c.registeredAt,
+          totalReceived: c.totalReceived,
+          tipCount: c.tipCount,
+        };
+      })
     );
 
-    nameByAddress = Object.fromEntries(creators.map((c) => [c.addr, c.name]));
-
-    grid.innerHTML = creators
-      .map(
-        (c) => `
-      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
-        <a href="?creator=${c.addr}" class="flex items-center gap-3 hover:opacity-80 transition">
-          <div class="w-10 h-10 rounded-full ${avatarColor(c.addr)} flex items-center justify-center font-bold">${c.name.charAt(0).toUpperCase()}</div>
-          <div>
-            <div class="font-semibold">${c.name}</div>
-            <div class="text-xs text-slate-400 font-mono">${shortAddr(c.addr)}</div>
-          </div>
-        </a>
-        <p class="text-sm text-slate-500 mt-3 flex-1">${c.bio || 'No bio yet.'}</p>
-        <div class="flex items-center justify-between mt-4 text-sm">
-          <span class="text-slate-500">${ethers.formatEther(c.totalReceived)} X1T · ${c.tipCount} tip(s)</span>
-          <button data-addr="${c.addr}" data-name="${c.name}" class="tipBtn text-sm font-medium px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Tip</button>
-        </div>
-      </div>`
-      )
-      .join('');
-
-    document.querySelectorAll('.tipBtn').forEach((btn) =>
-      btn.addEventListener('click', () => openTipModal(btn.dataset.addr, btn.dataset.name))
-    );
+    nameByAddress = Object.fromEntries(allCreators.map((c) => [c.addr, c.name]));
+    renderCreatorGrid();
 
     await loadFeed(document.getElementById('activityFeed'), null);
   } catch (err) {
@@ -258,7 +322,12 @@ async function loadProfile(addr) {
     document.getElementById('profileTipCount').textContent = record.tipCount.toString();
     document.getElementById('profileTipBtn').addEventListener('click', () => openTipModal(addr, record.name));
 
-    await loadFeed(document.getElementById('profileFeed'), addr);
+    const events = await loadFeed(document.getElementById('profileFeed'), addr);
+    renderTopSupporters(
+      document.getElementById('topSupporters'),
+      document.getElementById('topSupportersSection'),
+      events
+    );
   } catch (err) {
     toast(`Error loading profile: ${err.message}`, 'error');
   }
@@ -444,6 +513,14 @@ document.getElementById('tipSendBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('refreshBtn').addEventListener('click', refreshCreators);
+document.getElementById('searchInput').addEventListener('input', renderCreatorGrid);
+document.getElementById('sortSelect').addEventListener('change', renderCreatorGrid);
+
+document.querySelectorAll('.quickAmountBtn').forEach((btn) =>
+  btn.addEventListener('click', () => {
+    document.getElementById('tipAmount').value = btn.dataset.amount;
+  })
+);
 
 if (profileAddress) {
   loadProfile(profileAddress);

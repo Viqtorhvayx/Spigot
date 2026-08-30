@@ -63,8 +63,11 @@ The deploy script sets the deploying wallet as the fee recipient and prints the 
 - **Loading states** on every transaction button (spinner + label, disabled mid-flight) so it's never ambiguous whether a click registered.
 - **Character counters** on every text input, matching the contract's actual on-chain limits (64/280/280).
 - **Deterministic per-address avatar colors** — each creator gets a stable color from a small curated palette instead of one flat brand color everywhere.
+- **Search and sort** on the discover grid (by name, top earning, most tips, or newest), and a **top-supporters leaderboard** on each creator page, computed from real `TipSent` history.
 
 Already pointed at the live contract above.
+
+**A real bug caught during this round, worth documenting rather than quietly fixing:** the code that loads all creators used `{ addr, ...(await contract.creators(addr)) }` to build each row. ethers v6's `Result` objects only expose numeric indices through spread/`Object.keys()` — named fields like `.name` and `.totalReceived` are getters that spread doesn't pick up. So every creator object silently had no `name`, `bio`, `totalReceived`, or `tipCount` on it, which would have thrown once the grid tried to render. It went unnoticed for several commits because verification always used direct property access (`c.name`) in test scripts rather than the frontend's actual spread pattern — a reminder that "verified against live data" is only as good as whether the test exercises the real code path, not just equivalent-looking logic. Fixed by explicitly pulling each field off the `Result` instead of spreading it.
 
 ## Honest limitations (read before pitching this)
 

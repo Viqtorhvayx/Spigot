@@ -130,6 +130,14 @@
         <h2 class="font-bold text-lg">Discover creators</h2>
         <button id="refreshBtn" class="text-sm text-slate-500 hover:text-slate-900 transition">Refresh</button>
       </div>
+      <div class="flex flex-col sm:flex-row gap-2 mb-4">
+        <input id="searchInput" placeholder="Search creators by name…" class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+        <select id="sortSelect" class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          <option value="top">Top earning</option>
+          <option value="newest">Newest</option>
+          <option value="tips">Most tips</option>
+        </select>
+      </div>
       <div id="creatorGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
         <p class="text-sm text-slate-400 col-span-full">Loading creators…</p>
       </div>
@@ -163,6 +171,11 @@
         <button id="profileTipBtn" class="mt-6 text-sm font-medium px-6 py-3 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">Send a tip</button>
       </div>
 
+      <div id="topSupportersSection" class="hidden">
+        <h2 class="font-bold text-lg mt-10 mb-4">Top supporters</h2>
+        <div id="topSupporters" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100"></div>
+      </div>
+
       <h2 class="font-bold text-lg mt-10 mb-4">Recent tips</h2>
       <div id="profileFeed" class="bg-white border border-slate-200 rounded-2xl divide-y divide-slate-100">
         <p class="text-sm text-slate-400 p-5">Loading…</p>
@@ -183,6 +196,12 @@
     <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
       <h3 class="font-bold text-lg">Send a tip to <span id="tipModalName"></span></h3>
       <input id="tipAmount" placeholder="Amount in X1T, e.g. 1" class="mt-4 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+      <div class="flex gap-2 mt-2">
+        <button type="button" data-amount="1" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">1 X1T</button>
+        <button type="button" data-amount="5" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">5 X1T</button>
+        <button type="button" data-amount="10" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">10 X1T</button>
+        <button type="button" data-amount="25" class="quickAmountBtn flex-1 text-xs font-medium py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">25 X1T</button>
+      </div>
       <input id="tipMessage" maxlength="280" placeholder="Message (optional)" class="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
       <div class="text-xs text-slate-400 mt-1 text-right"><span id="tipMessageCount">0</span>/280</div>
       <div class="flex gap-2 mt-2">
