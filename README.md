@@ -4,6 +4,8 @@ On-chain liveness attestation for X1 EcoChain node operators. Instead of self-re
 
 **Live on the Maculatus testnet:** [`0xC76bC2E969803C059888218DB532DEa9B63a8D8E`](https://maculatus-scan.x1eco.com/address/0xC76bC2E969803C059888218DB532DEa9B63a8D8E)
 
+**Live dashboard:** [x1-forge-mu.vercel.app](https://x1-forge-mu.vercel.app)
+
 The full flow has been exercised live against this deployment, not just in local tests: a node registered (`registerNode`), submitted a heartbeat (`heartbeat`), was confirmed `isActive`, and a second immediate heartbeat correctly reverted with `"Heartbeat too soon"` — confirming the cooldown works on-chain.
 
 ## Why this, and why X1 EcoChain specifically
@@ -43,7 +45,7 @@ npm run deploy:testnet
 
 ## Frontend
 
-`frontend/index.html` — a dashboard showing every registered operator, their live/inactive status, heartbeat count, and last-seen time, plus a self-serve panel to register and heartbeat from a connected wallet. Already pointed at the live contract above.
+`frontend/index.html` — a dashboard showing every registered operator, their live/inactive status, heartbeat count, and last-seen time, plus a self-serve panel to register and heartbeat from a connected wallet. Already pointed at the live contract above, and deployed at [x1-forge-mu.vercel.app](https://x1-forge-mu.vercel.app).
 
 ## Network reference
 

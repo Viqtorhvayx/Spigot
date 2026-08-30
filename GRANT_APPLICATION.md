@@ -22,7 +22,7 @@ Verinode is an on-chain liveness attestation protocol for X1 EcoChain node opera
 - Phase 4 (Days 75–120): mainnet deployment (pending X1 EcoChain mainnet availability) and a retrospective on real adoption metrics (registered operators, heartbeat volume, uptime data collected).
 
 **Project website**
-[URL — set once the repo is public, e.g. https://github.com/Viqtorhvayx/Verinode]
+Repo: https://github.com/Viqtorhvayx/Verinode — Live dashboard: https://x1-forge-mu.vercel.app
 
 **Project X (Twitter)**
 [@handle]
@@ -46,7 +46,7 @@ Phase 1 complete and verified live: `Verinode.sol` deployed to the Maculatus tes
 [fill in actual]
 
 **Project live status**
-Contract and dashboard live on testnet; no real X1Node operators onboarded yet (that's the Phase 3 ask).
+Contract and dashboard live on testnet (https://x1-forge-mu.vercel.app); no real X1Node operators onboarded yet (that's the Phase 3 ask).
 
 ---
 
@@ -60,7 +60,7 @@ victorolagbaye679@gmail.com
 [e.g. Founder / Solo Developer]
 
 **Applicant Bio**
-[2–3 sentences: background, relevant experience, prior projects shipped — note X1 Forge (github.com/Viqtorhvayx/X1Forge) as evidence of shipped work on X1 EcoChain if you want to reference it]
+[2–3 sentences: background, relevant experience, prior projects shipped]
 
 **Telegram**
 [@handle]
@@ -84,4 +84,4 @@ Verinode is designed as ecosystem infrastructure, not a single-purpose app — t
 - **This is a bigger commitment than a typical hackathon submission.** KYB/KYC, a pitch deck, and a 90–120 day delivery plan mean the grant committee expects you to actually execute — budget real time before submitting, not just for the application itself.
 - No claim of real-world adoption has been made anywhere in this draft — only that the protocol works, verified against the live chain. Keep it that way; claiming operator adoption that doesn't exist would be caught immediately by anyone checking the dashboard.
 - You'll want an actual pitch deck (slides) — this markdown draft is not a substitute for the "~8 minute application with your deck" the program asks for. I can help build slide content once the milestone dates and funding ask are set.
-- Publish the repo publicly before submitting — reviewers will check for a real, inspectable codebase, same as with X1 Forge.
+- The repo is public at https://github.com/Viqtorhvayx/Verinode and the dashboard is live at https://x1-forge-mu.vercel.app — reviewers can inspect both directly.
