@@ -148,13 +148,54 @@ function renderWalletArea() {
     return;
   }
   el.innerHTML = `
-    <div class="flex items-center gap-2 bg-panel2 border border-border rounded-full pl-1.5 pr-3 py-1">
-      ${avatarHtml(account, 22)}
-      <span class="text-sm font-mono" id="walletAddrLabel">${short(account)}</span>
+    <div class="relative">
+      <button id="walletPill" class="flex items-center gap-2 bg-panel2 border border-border rounded-full pl-1.5 pr-3 py-1 hover:border-accent/40 transition">
+        ${avatarHtml(account, 22)}
+        <span class="text-sm font-mono" id="walletAddrLabel">${short(account)}</span>
+      </button>
+      <div id="walletMenu" class="hidden absolute right-0 mt-2 w-44 bg-panel border border-border rounded-xl shadow-lg overflow-hidden z-50">
+        <button id="disconnectBtn" class="w-full text-left px-4 py-3 text-sm font-semibold text-rose-400 hover:bg-panel2 transition">Disconnect</button>
+      </div>
     </div>`;
+  const walletMenu = document.getElementById('walletMenu');
+  document.getElementById('walletPill').onclick = (e) => {
+    e.stopPropagation();
+    walletMenu.classList.toggle('hidden');
+  };
+  document.getElementById('disconnectBtn').onclick = disconnectWallet;
+  document.addEventListener('click', () => walletMenu.classList.add('hidden'), { once: true });
   displayNameOr(account).then((name) => {
     if (name) document.getElementById('walletAddrLabel').textContent = name;
   });
+}
+
+// Clears local session state and re-renders. `silent` skips the toast —
+// used when disconnectWallet() is about to show its own, so the user
+// doesn't see two.
+function resetWalletState({ silent = false } = {}) {
+  const wasConnected = !!account;
+  wcProvider = null;
+  browserProvider = null;
+  signer = null;
+  signerContract = null;
+  account = null;
+  renderWalletArea();
+  refreshAccountPanel();
+  refreshMyServices();
+  if (wasConnected && !silent) toast('Wallet disconnected', 'info');
+}
+
+async function disconnectWallet() {
+  const activeWcProvider = wcProvider;
+  resetWalletState({ silent: true }); // clear the UI immediately, don't block on the network call below
+  if (activeWcProvider) {
+    try {
+      await activeWcProvider.disconnect(); // tears down the WalletConnect session so the wallet app shows it as disconnected too
+    } catch (err) {
+      console.error('error tearing down WalletConnect session:', err);
+    }
+  }
+  toast('Wallet disconnected', 'info');
 }
 
 // Injected wallet (MetaMask extension, or a mobile wallet's in-app browser).
@@ -219,7 +260,10 @@ async function connectWalletConnect() {
         icons: [],
       },
     });
-    wcProvider.on('disconnect', () => window.location.reload());
+    // Fires when the session ends from the wallet app's side (not via our
+    // own Disconnect button, which already resets state itself) — e.g. the
+    // user disconnects from inside their wallet app.
+    wcProvider.on('disconnect', () => resetWalletState());
     await wcProvider.enable();
     browserProvider = new ethers.BrowserProvider(wcProvider, { chainId: X1_CHAIN_ID_DEC, name: 'x1-maculatus' });
     signer = await browserProvider.getSigner();
