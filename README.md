@@ -42,6 +42,11 @@ strangers. Turn the tap on, per request, and it's paid for.
 - **Every call emits a receipt** (`CallSettled`, with a sequential
   `receiptId`) — a public, auditable log of who paid whom, how much, and
   when. The frontend's Activity tab is just this event log rendered live.
+- **An x402-style HTTP gateway sits on top** ([`x402/`](./x402)) — drop
+  `spigotPay()` in front of any Express route and it handles the whole
+  `402 Payment Required` -> pay on-chain -> retry-with-proof loop, with
+  the on-chain `CallSettled` event itself as the payment proof. No
+  off-chain facilitator. See [`x402/README.md`](./x402/README.md).
 
 ## Contract design
 
@@ -68,11 +73,11 @@ strangers. Turn the tap on, per request, and it's paid for.
 
 ## What's genuinely unfinished (said plainly)
 
-- **No x402 HTTP middleware yet.** The contract is the settlement primitive
-  an x402-style `402 Payment Required` gateway would call into — that
-  middleware (verify a payment header, call `payAndCall`/`callService`,
-  return the resource) isn't built. It's the natural next layer, not
-  required for the on-chain rails to work standalone.
+- **The x402 middleware's replay guard is in-memory by default.** A
+  single-process deployment is fine; a multi-instance one needs a shared
+  store (Redis, a DB table) for `usedReceipts`. See
+  [`x402/README.md`](./x402/README.md#limitations-said-plainly) for the
+  full list, including the caller-authentication tradeoff.
 - **No indexer/subgraph.** The Activity feed does a direct
   `queryFilter` against the RPC node from `DEPLOY_BLOCK`. Fine at current
   volume; would need a real indexer at scale.
@@ -87,6 +92,7 @@ contracts/Spigot.sol    — the contract
 test/Spigot.test.js     — 16 Hardhat tests
 scripts/deploy.js       — deployment script
 frontend/               — static site (no build step): index.html, app.js, config.js
+x402/                   — HTTP 402 payment middleware + client + live demo (see x402/README.md)
 ```
 
 ## Running it locally
@@ -133,6 +139,17 @@ The frontend was smoke-tested with a headless browser against this exact
 deployed contract: the Browse tab renders the real registered service with
 its real stats, and the Activity tab renders both real `CallSettled`
 receipts from the flow above with the exact expected payout/fee split.
+
+The x402 middleware ([`x402/`](./x402)) was verified the same way, against
+a second live service ("Demo Weather Feed", `serviceId 1`, unlimited
+calls) registered on this same deployed contract: an unauthenticated
+request to the demo API got a real `402` carrying that service's live
+price and provider address; the demo client paid on-chain via
+`payAndCall`, retried with the transaction hash, and got a real `200`
+whose `paidBy` matched the paying wallet; reusing that same transaction
+hash was correctly rejected with "this payment receipt has already been
+redeemed"; and the `callService` (prepaid-credit) path was verified the
+same way end to end.
 
 ## Network
 

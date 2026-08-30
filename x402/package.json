@@ -1,0 +1,15 @@
+{
+  "name": "spigot-x402",
+  "version": "0.1.0",
+  "private": true,
+  "description": "x402-style HTTP payment middleware backed by the Spigot contract on X1 EcoChain.",
+  "main": "spigotPay.js",
+  "scripts": {
+    "server": "node example-server.js",
+    "demo": "node example-client.js"
+  },
+  "dependencies": {
+    "ethers": "^6.13.4",
+    "express": "^4.19.2"
+  }
+}
