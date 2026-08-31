@@ -114,7 +114,7 @@
         </div>
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-1.5 bg-panel border border-border rounded-lg px-2.5 py-1.5">
-            <span class="tabular-nums text-[11px]" id="creditChipValueMobile">0.0</span>
+            <span class="tabular-nums font-semibold text-[11px]" id="creditChipValueMobile">0.0</span>
             <span class="text-[10px] text-slate-500">X1T</span>
           </div>
           <div id="walletAreaMobile"></div>
@@ -131,7 +131,7 @@
           <button id="creditChipDesktop" class="flex items-center gap-2 bg-panel border border-border rounded-lg px-3 py-2 hover:border-border2 transition">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-slate-500"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/></svg>
             <span class="text-[11px] text-slate-500">Credit</span>
-            <span class="tabular-nums text-[12px]" id="creditChipValueDesktop">0.0</span>
+            <span class="tabular-nums font-semibold text-[12px]" id="creditChipValueDesktop">0.0</span>
             <span class="text-[10px] text-slate-500">X1T</span>
           </button>
           <div id="walletAreaDesktop"></div>
@@ -144,17 +144,17 @@
           <div class="flex items-stretch gap-4 lg:gap-9 overflow-x-auto">
             <div class="shrink-0">
               <div class="text-[9px] font-semibold tracking-widest uppercase text-slate-500 mb-1.5 lg:mb-2">Fees Collected</div>
-              <div class="tabular-nums text-xl lg:text-3xl font-medium text-accent leading-none"><span id="statFees">–</span><span class="text-[10px] lg:text-xs text-slate-500 font-sans ml-1">X1T</span></div>
+              <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight text-accent leading-none"><span id="statFees">–</span><span class="text-[10px] lg:text-xs text-slate-500 font-sans ml-1">X1T</span></div>
             </div>
             <div class="w-px bg-border shrink-0"></div>
             <div class="shrink-0">
               <div class="text-[9px] font-semibold tracking-widest uppercase text-slate-500 mb-1.5 lg:mb-2">Calls Settled</div>
-              <div class="tabular-nums text-xl lg:text-3xl font-medium leading-none" id="statCalls">–</div>
+              <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight leading-none" id="statCalls">–</div>
             </div>
             <div class="w-px bg-border shrink-0"></div>
             <div class="shrink-0">
               <div class="text-[9px] font-semibold tracking-widest uppercase text-slate-500 mb-1.5 lg:mb-2">Services Live <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot ml-0.5"></span></div>
-              <div class="tabular-nums text-xl lg:text-3xl font-medium leading-none" id="statServices">–</div>
+              <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight leading-none" id="statServices">–</div>
             </div>
           </div>
           <div class="hidden lg:flex items-center gap-2.5 bg-panel border border-border rounded-full pl-3 pr-4 py-2 shrink-0">
@@ -173,7 +173,7 @@
           <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div class="flex items-center gap-2.5">
               <h2 class="font-bold text-[15px]">Live services</h2>
-              <span class="tabular-nums text-[11px] text-slate-500 bg-panel2 rounded px-2 py-0.5" id="serviceCount">0</span>
+              <span class="tabular-nums font-semibold text-[11px] text-slate-500 bg-panel2 rounded px-2 py-0.5" id="serviceCount">0</span>
             </div>
             <div class="flex items-center gap-2.5 flex-wrap">
               <div class="flex gap-0.5 bg-panel border border-border rounded-lg p-0.5" id="statusSeg">
@@ -245,7 +245,7 @@
                       <span class="text-accent text-xs">*</span>
                       <span class="text-[11px] text-slate-500">string</span>
                     </div>
-                    <span id="nameCount" class="tabular-nums text-[10.5px] text-slate-500">0/64</span>
+                    <span id="nameCount" class="tabular-nums font-medium text-[10.5px] text-slate-500">0/64</span>
                   </div>
                   <input id="svcName" maxlength="64" placeholder="Weather Oracle API" class="w-full bg-panel2 border border-border rounded-lg px-3 py-2.5 text-[13.5px] outline-none focus:ring-2 focus:ring-accent/30" />
                 </div>
@@ -255,7 +255,7 @@
                       <span class="font-mono text-[12.5px] font-medium">description</span>
                       <span class="text-[11px] text-slate-500">string</span>
                     </div>
-                    <span id="descCount" class="tabular-nums text-[10.5px] text-slate-500">0/280</span>
+                    <span id="descCount" class="tabular-nums font-medium text-[10.5px] text-slate-500">0/280</span>
                   </div>
                   <textarea id="svcDesc" maxlength="280" rows="3" placeholder="Real-time weather data for agents." class="w-full bg-panel2 border border-border rounded-lg px-3 py-2.5 text-[13.5px] outline-none focus:ring-2 focus:ring-accent/30 resize-none"></textarea>
                 </div>
@@ -315,7 +315,7 @@
           <div class="grid sm:grid-cols-2 gap-5">
             <div class="bg-panel border border-border rounded-xl p-5 sm:p-6 flex flex-col">
               <div class="text-[9px] font-semibold tracking-widest uppercase text-slate-500">Prepaid credit</div>
-              <div class="tabular-nums text-4xl sm:text-5xl font-medium leading-none my-4"><span id="creditBalance">0.0</span><span class="text-[13px] sm:text-base text-slate-500 font-sans font-normal ml-2">X1T</span></div>
+              <div class="tabular-nums text-4xl sm:text-5xl font-black tracking-tight leading-none my-4"><span id="creditBalance">0.0</span><span class="text-[13px] sm:text-base text-slate-500 font-sans font-normal ml-2">X1T</span></div>
               <p class="text-[12.5px] text-slate-400 leading-relaxed mb-4">Deposit once, then every call draws down your balance with no wallet prompt for payment.</p>
               <div class="mt-auto flex flex-col gap-2">
                 <div class="flex gap-2">
@@ -331,15 +331,15 @@
 
             <div class="bg-panel border border-border rounded-xl p-5 sm:p-6 flex flex-col">
               <div class="text-[9px] font-semibold tracking-widest uppercase text-slate-500">Withdrawable earnings</div>
-              <div class="tabular-nums text-4xl sm:text-5xl font-medium leading-none text-accent my-4"><span id="earningsBalance">0.0</span><span class="text-[13px] sm:text-base text-slate-500 font-sans font-normal ml-2">X1T</span></div>
+              <div class="tabular-nums text-4xl sm:text-5xl font-black tracking-tight text-accent my-4"><span id="earningsBalance">0.0</span><span class="text-[13px] sm:text-base text-slate-500 font-sans font-normal ml-2">X1T</span></div>
               <p class="text-[12.5px] text-slate-400 leading-relaxed mb-4">Your share of every call settled against services you provide.</p>
               <div class="flex items-center justify-between py-2.5 border-t border-border text-[12.5px]">
                 <span class="text-slate-500">Calls settled against you</span>
-                <span class="tabular-nums" id="myCallsSettled">–</span>
+                <span class="tabular-nums font-semibold" id="myCallsSettled">–</span>
               </div>
               <div class="flex items-center justify-between py-2.5 border-t border-border text-[12.5px] mb-2">
                 <span class="text-slate-500">Platform fee</span>
-                <span class="tabular-nums" id="platformFeeLabel">2.5%</span>
+                <span class="tabular-nums font-semibold" id="platformFeeLabel">2.5%</span>
               </div>
               <button id="withdrawEarningsBtn" class="mt-auto bg-accent text-ink font-semibold text-[13px] rounded-lg py-2.5 hover:bg-lime-300 transition disabled:opacity-50 disabled:cursor-not-allowed">Withdraw all</button>
             </div>
@@ -370,7 +370,7 @@
           <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div class="flex items-center gap-2.5">
               <h2 class="font-bold text-[15px]">Recent settlements</h2>
-              <span class="tabular-nums text-[11px] text-slate-500 bg-panel2 rounded px-2 py-0.5" id="activityCount">0</span>
+              <span class="tabular-nums font-semibold text-[11px] text-slate-500 bg-panel2 rounded px-2 py-0.5" id="activityCount">0</span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <div class="flex items-center gap-2 bg-panel2 border border-border rounded-lg px-2.5 py-1.5 w-[170px] sm:w-[220px]">
