@@ -36,8 +36,8 @@
   ::-webkit-scrollbar-thumb { background: #2a3542; border-radius: 4px; }
   .tab-btn.active { color: #c7f04c; border-bottom-color: #c7f04c; }
   .chk { appearance: none; -webkit-appearance: none; width: 15px; height: 15px; border: 1px solid #232b36; border-radius: 4px; background: #161d26; cursor: pointer; display: inline-block; position: relative; flex-shrink: 0; margin: 0; }
-  .chk:checked { background: #c7f04c; border-color: #c7f04c; }
-  .chk:checked::after { content: ''; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #0b0f14; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .chk:checked { background: rgba(199,240,76,0.15); border: 1.5px solid #c7f04c; }
+  .chk:checked::after { content: ''; position: absolute; left: 3.5px; top: 0.5px; width: 4px; height: 8px; border: solid #c7f04c; border-width: 0 2px 2px 0; transform: rotate(45deg); }
   .spinner { border: 2px solid rgba(255,255,255,0.2); border-top-color: #0b0f14; border-radius: 9999px; width: 14px; height: 14px; animation: spin 0.7s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .toast-enter { animation: toastIn 0.25s ease-out; }
