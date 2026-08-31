@@ -82,9 +82,7 @@
         Get paid per request. <span class="text-accent">Instantly.</span> On-chain.
       </h1>
       <p class="mt-3 text-slate-400 leading-relaxed">
-        Register an API, model, or data feed as a paid service. Every call settles on X1 EcoChain —
-        callers pay per request, providers withdraw earnings anytime. Built for machine-to-machine
-        and AI agent payments, with a prepaid-credit mode for high-frequency callers.
+        List an API. Callers pay per call, you withdraw anytime. Built for machine-to-machine and AI agent payments.
       </p>
       <div class="mt-6 grid grid-cols-3 gap-3 max-w-xl">
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
@@ -137,7 +135,7 @@
         </label>
       </div>
       <div id="serviceGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      <div id="serviceEmpty" class="hidden text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">No services registered yet. Be the first — head to the Provider Dashboard.</div>
+      <div id="serviceEmpty" class="hidden text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">No services yet — register the first one.</div>
     </section>
 
     <!-- Provider tab -->
@@ -146,7 +144,7 @@
         <div class="lg:col-span-2">
           <div class="bg-panel border border-border rounded-2xl p-5">
             <h3 class="font-bold mb-1 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Register a service</h3>
-            <p class="text-xs text-slate-500 mb-4">List an API, model endpoint, or data feed. Callers pay per call; you withdraw anytime.</p>
+            <p class="text-xs text-slate-500 mb-4">Callers pay per call. You withdraw anytime.</p>
             <form id="registerForm" class="space-y-3">
               <div>
                 <div class="flex justify-between text-xs text-slate-400 mb-1"><span>Service name</span><span id="nameCount">0/64</span></div>
@@ -176,10 +174,10 @@
           <h3 class="font-bold mb-3 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>My services</h3>
           <div id="myServices" class="space-y-3"></div>
           <div id="myServicesEmpty" class="hidden text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
-            You haven't registered any services yet.
+            No services yet.
           </div>
           <div id="myServicesConnect" class="text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
-            Connect your wallet to see and manage your services.
+            Connect your wallet to manage services.
           </div>
         </div>
       </div>
@@ -188,12 +186,12 @@
     <!-- Account tab -->
     <section id="tab-account" class="tab-panel hidden">
       <div id="accountConnect" class="text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
-        Connect your wallet to manage your account.
+        Connect your wallet to continue.
       </div>
       <div id="accountBody" class="hidden grid md:grid-cols-2 gap-6">
         <div class="bg-panel border border-border rounded-2xl p-5">
           <h3 class="font-bold mb-1 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Display name</h3>
-          <p class="text-xs text-slate-500 mb-3">Shown instead of your raw address across Spigot.</p>
+          <p class="text-xs text-slate-500 mb-3">Shown instead of your address.</p>
           <form id="nameForm" class="flex gap-2">
             <input id="displayNameInput" maxlength="64" placeholder="Agent-007" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
             <button type="submit" id="nameBtn" class="bg-panel2 border border-border hover:border-accent/60 transition font-semibold text-sm rounded-lg px-4 py-2 disabled:opacity-50">Save</button>
@@ -202,7 +200,7 @@
 
         <div class="bg-panel border border-border rounded-2xl p-5">
           <h3 class="font-bold mb-1 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Prepaid credit</h3>
-          <p class="text-xs text-slate-500 mb-3">Deposit once, call any service without a per-call transaction prompt.</p>
+          <p class="text-xs text-slate-500 mb-3">Deposit once, skip the wallet prompt per call.</p>
           <div class="text-3xl font-extrabold font-mono leading-none mb-4"><span id="creditBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
           <div class="flex gap-2">
             <input id="depositAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
@@ -218,7 +216,7 @@
           <div class="flex items-center justify-between mb-1">
             <h3 class="font-bold flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Withdrawable earnings</h3>
           </div>
-          <p class="text-xs text-slate-500 mb-3">Accumulated from services you provide, or platform fees if this is the fee-recipient address.</p>
+          <p class="text-xs text-slate-500 mb-3">Earned from services you provide.</p>
           <div class="flex items-center justify-between">
             <div class="text-3xl font-extrabold font-mono leading-none"><span id="earningsBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
             <button id="withdrawEarningsBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-5 py-2 hover:bg-lime-300 transition disabled:opacity-50 disabled:cursor-not-allowed">Withdraw all</button>
@@ -254,7 +252,7 @@
   </main>
 
   <footer class="max-w-6xl mx-auto px-4 sm:px-6 py-10 text-center text-xs text-slate-600 border-t border-border mt-8">
-    Built on <span class="text-accent">X1 EcoChain</span> (Maculatus testnet) · Transparent fees · Instant settlement · Open for all
+    Built on <span class="text-accent">X1 EcoChain</span> (Maculatus testnet) · Transparent fees · Instant settlement
     <br class="sm:hidden" />
     <span class="sm:ml-1">— contract <a class="text-slate-500 hover:text-accent underline decoration-dotted" href="https://maculatus-scan.x1eco.com/address/0xf4b3191C7a3315F0d2B375162E3025E78B25B595" target="_blank" rel="noopener">0xf4b3…B595</a></span>
   </footer>
@@ -278,7 +276,7 @@
         </button>
         <button id="modalCallDirect" class="w-full text-left bg-panel2 border border-border hover:border-accent/60 rounded-lg px-4 py-3 transition">
           <div class="font-semibold text-sm">Pay directly this call</div>
-          <div class="text-xs text-slate-500">One transaction, exact price sent as value</div>
+          <div class="text-xs text-slate-500">One transaction, exact price</div>
         </button>
       </div>
       <div id="modalStatus" class="mt-3 text-xs text-center text-slate-500"></div>
