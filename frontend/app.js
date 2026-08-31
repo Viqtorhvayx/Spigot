@@ -63,11 +63,11 @@ function toast(message, type = 'info') {
   const host = document.getElementById('toastHost');
   const el = document.createElement('div');
   const palette = {
-    info: 'border-border bg-panel/80 text-slate-200',
-    success: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
-    error: 'border-rose-500/40 bg-rose-500/15 text-rose-300',
+    info: 'bg-panel/80 text-slate-200',
+    success: 'bg-emerald-500/15 text-emerald-300',
+    error: 'bg-rose-500/15 text-rose-300',
   };
-  el.className = `toast-enter border rounded-xl px-4 py-3 text-sm shadow-lg backdrop-blur-md ${palette[type] || palette.info}`;
+  el.className = `toast-enter rounded-xl px-4 py-3 text-sm shadow-lg backdrop-blur-md ${palette[type] || palette.info}`;
   el.textContent = message;
   host.appendChild(el);
   setTimeout(() => {
