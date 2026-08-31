@@ -488,7 +488,7 @@ async function renderServiceGrid() {
         <div class="flex-1"></div>
         <div class="flex items-end justify-between border-t border-border mt-4 pt-4">
           <div>
-            <div class="font-mono text-2xl font-medium text-accent leading-none">${fmtX1T(s.pricePerCall)}</div>
+            <div class="tabular-nums text-2xl font-medium text-accent leading-none">${fmtX1T(s.pricePerCall)}</div>
             <div class="text-[10.5px] text-slate-500 mt-1.5">X1T per call</div>
           </div>
           <button data-call-id="${s.id}" class="callBtn flex items-center gap-1.5 bg-accent text-ink text-[13px] font-semibold rounded-lg px-4 py-2.5 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call ${svg('arrow', 13, 2.2)}</button>
@@ -561,15 +561,15 @@ async function renderMyServices() {
         </div>
         <div class="grid grid-cols-3 gap-2 mt-3 text-center">
           <div class="bg-panel2 rounded-lg py-2">
-            <div class="text-[13px] font-bold font-mono">${fmtX1T(s.pricePerCall)}</div>
+            <div class="text-[13px] font-bold tabular-nums">${fmtX1T(s.pricePerCall)}</div>
             <div class="text-[10px] text-slate-500">X1T/call</div>
           </div>
           <div class="bg-panel2 rounded-lg py-2">
-            <div class="text-[13px] font-bold font-mono">${s.totalCalls.toString()}</div>
+            <div class="text-[13px] font-bold tabular-nums">${s.totalCalls.toString()}</div>
             <div class="text-[10px] text-slate-500">total calls</div>
           </div>
           <div class="bg-panel2 rounded-lg py-2">
-            <div class="text-[13px] font-bold font-mono">${fmtX1T(s.totalRevenue)}</div>
+            <div class="text-[13px] font-bold tabular-nums">${fmtX1T(s.totalRevenue)}</div>
             <div class="text-[10px] text-slate-500">revenue (X1T)</div>
           </div>
         </div>
@@ -836,8 +836,8 @@ function detailReceiptRowHtml(ev) {
         <span class="font-mono text-[11.5px] text-slate-500 truncate">${short(consumer)}</span>
       </div>
       <div class="text-right shrink-0">
-        <div class="font-mono text-[12.5px] text-accent">+${fmtX1T(payout)}</div>
-        <div class="font-mono text-[10px] text-slate-500 mt-0.5">fee ${fmtX1T(fee)} · ${timeAgo(timestamp)} ago</div>
+        <div class="tabular-nums text-[12.5px] text-accent">+${fmtX1T(payout)}</div>
+        <div class="tabular-nums text-[10px] text-slate-500 mt-0.5">fee ${fmtX1T(fee)} · ${timeAgo(timestamp)} ago</div>
       </div>
     </div>`;
 }
@@ -862,7 +862,7 @@ function renderDetailFull() {
   const kvHtml = (rows) => rows.map(([k, v], i) =>
     `<div class="flex items-center justify-between gap-3 py-2.5 ${i ? 'border-t border-border' : ''}">
        <span class="text-[12.5px] text-slate-500">${k}</span>
-       <span class="font-mono text-[12.5px] text-slate-100 text-right">${escapeHtml(String(v))}</span>
+       <span class="tabular-nums text-[12.5px] text-slate-100 text-right">${escapeHtml(String(v))}</span>
      </div>`).join('');
 
   document.getElementById('detailBody').innerHTML = `
@@ -881,15 +881,15 @@ function renderDetailFull() {
       <p class="text-[13.5px] text-slate-400 leading-relaxed mt-4 max-w-xl">${escapeHtml(s.description)}</p>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-5 sm:gap-7 py-5 border-t border-b border-border mt-5">
-        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Price / call</div><div class="font-mono text-xl sm:text-2xl">${fmtX1T(s.pricePerCall)}<span class="text-[11px] text-slate-500 font-sans ml-1">X1T</span></div></div>
-        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Total calls</div><div class="font-mono text-xl sm:text-2xl">${s.totalCalls.toString()}</div></div>
-        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Total revenue</div><div class="font-mono text-xl sm:text-2xl">${fmtX1T(s.totalRevenue)}<span class="text-[11px] text-slate-500 font-sans ml-1">X1T</span></div></div>
-        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Daily cap</div><div class="font-mono text-xl sm:text-2xl">${s.maxCallsPerDay > 0n ? s.maxCallsPerDay.toString() : '∞'}<span class="text-[11px] text-slate-500 font-sans ml-1">${s.maxCallsPerDay > 0n ? '/ caller' : ''}</span></div></div>
+        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Price / call</div><div class="tabular-nums text-xl sm:text-2xl">${fmtX1T(s.pricePerCall)}<span class="text-[11px] text-slate-500 font-sans ml-1">X1T</span></div></div>
+        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Total calls</div><div class="tabular-nums text-xl sm:text-2xl">${s.totalCalls.toString()}</div></div>
+        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Total revenue</div><div class="tabular-nums text-xl sm:text-2xl">${fmtX1T(s.totalRevenue)}<span class="text-[11px] text-slate-500 font-sans ml-1">X1T</span></div></div>
+        <div><div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500 mb-2">Daily cap</div><div class="tabular-nums text-xl sm:text-2xl">${s.maxCallsPerDay > 0n ? s.maxCallsPerDay.toString() : '∞'}<span class="text-[11px] text-slate-500 font-sans ml-1">${s.maxCallsPerDay > 0n ? '/ caller' : ''}</span></div></div>
       </div>
 
       <div class="flex gap-5 mt-5 border-b border-border">
         <button data-dtab="overview" class="dtab text-[13px] font-semibold pb-3 -mb-px border-b-2 ${detailTab === 'overview' ? 'text-slate-100 border-slate-100' : 'text-slate-500 border-transparent'}">Overview</button>
-        <button data-dtab="receipts" class="dtab text-[13px] font-semibold pb-3 -mb-px border-b-2 ${detailTab === 'receipts' ? 'text-slate-100 border-slate-100' : 'text-slate-500 border-transparent'}">Receipts <span class="font-mono text-[11px]">(${detailCache.receipts.length})</span></button>
+        <button data-dtab="receipts" class="dtab text-[13px] font-semibold pb-3 -mb-px border-b-2 ${detailTab === 'receipts' ? 'text-slate-100 border-slate-100' : 'text-slate-500 border-transparent'}">Receipts <span class="tabular-nums text-[11px]">(${detailCache.receipts.length})</span></button>
       </div>
 
       <div id="dtab-overview" class="${detailTab === 'overview' ? '' : 'hidden'} grid sm:grid-cols-2 gap-x-7 mt-2">
@@ -933,7 +933,7 @@ function renderCallPanel() {
     capRow = `
       <div class="flex items-center justify-between py-2.5">
         <span class="text-[12.5px] text-slate-500">Calls left today</span>
-        <span class="flex items-center gap-1.5 font-mono text-[12.5px]"><span class="text-slate-500">${left}</span><span class="text-border2">&rarr;</span><span class="${left > 0n ? 'text-accent' : 'text-rose-400'}">${after}</span></span>
+        <span class="flex items-center gap-1.5 tabular-nums text-[12.5px]"><span class="text-slate-500">${left}</span><span class="text-border2">&rarr;</span><span class="${left > 0n ? 'text-accent' : 'text-rose-400'}">${after}</span></span>
       </div>`;
   }
 
@@ -950,15 +950,15 @@ function renderCallPanel() {
       </div>
       <div class="bg-panel2 border border-border rounded-lg p-3.5">
         <div class="text-[9.5px] font-semibold tracking-widest uppercase text-slate-500">You pay</div>
-        <div class="font-mono text-3xl font-medium text-accent leading-none mt-2.5">${fmtX1T(s.pricePerCall)}<span class="text-[13px] text-slate-500 font-sans ml-1.5">X1T</span></div>
+        <div class="tabular-nums text-3xl font-medium text-accent leading-none mt-2.5">${fmtX1T(s.pricePerCall)}<span class="text-[13px] text-slate-500 font-sans ml-1.5">X1T</span></div>
       </div>
       <div class="mt-1">
-        <div class="flex items-center justify-between py-2.5 border-t border-border"><span class="text-[12.5px] text-slate-500">Platform fee (${(Number(platformFeeBps) / 100).toFixed(2)}%)</span><span class="font-mono text-[12.5px]">${fmtX1T(fee)} X1T</span></div>
-        <div class="flex items-center justify-between py-2.5 border-t border-border"><span class="text-[12.5px] text-slate-500">Provider receives</span><span class="font-mono text-[12.5px]">${fmtX1T(providerReceives)} X1T</span></div>
+        <div class="flex items-center justify-between py-2.5 border-t border-border"><span class="text-[12.5px] text-slate-500">Platform fee (${(Number(platformFeeBps) / 100).toFixed(2)}%)</span><span class="tabular-nums text-[12.5px]">${fmtX1T(fee)} X1T</span></div>
+        <div class="flex items-center justify-between py-2.5 border-t border-border"><span class="text-[12.5px] text-slate-500">Provider receives</span><span class="tabular-nums text-[12.5px]">${fmtX1T(providerReceives)} X1T</span></div>
       </div>
       <div class="border-t border-border">
         ${capRow}
-        <div class="flex items-center justify-between py-2.5 border-t border-border"><span class="text-[12.5px] text-slate-500">Service total calls</span><span class="flex items-center gap-1.5 font-mono text-[12.5px]"><span class="text-slate-500">${s.totalCalls}</span><span class="text-border2">&rarr;</span><span>${s.totalCalls + 1n}</span></span></div>
+        <div class="flex items-center justify-between py-2.5 border-t border-border"><span class="text-[12.5px] text-slate-500">Service total calls</span><span class="flex items-center gap-1.5 tabular-nums text-[12.5px]"><span class="text-slate-500">${s.totalCalls}</span><span class="text-border2">&rarr;</span><span>${s.totalCalls + 1n}</span></span></div>
       </div>
       ${detailPayMode === 'credit' && creditKnown
         ? `<div class="text-[11.5px] ${creditShort ? 'text-rose-400' : 'text-slate-500'} mt-1 mb-2">Your balance: ${fmtX1T(creditBal)} X1T${creditShort ? ' — not enough for this call' : ''}</div>`
@@ -1073,7 +1073,7 @@ function renderActivityTable() {
       <div class="flex items-center gap-2 px-4 py-2.5 bg-rail border-t border-border">
         <span class="text-slate-500">${svg('chev', 13, 2.2)}</span>
         <span class="text-[12.5px] font-semibold">${escapeHtml(g.name)}</span>
-        <span class="font-mono text-[11px] text-slate-500 bg-panel2 rounded px-1.5 py-0.5">${g.events.length}</span>
+        <span class="tabular-nums text-[11px] text-slate-500 bg-panel2 rounded px-1.5 py-0.5">${g.events.length}</span>
       </div>`;
     const rows = g.events.map((ev) => {
       const { receiptId, consumer, payout, fee, timestamp } = ev.args;
@@ -1082,8 +1082,8 @@ function renderActivityTable() {
           <div><span class="font-mono text-[12px] text-slate-400 bg-panel2 rounded px-2 py-1">#${receiptId.toString()}</span></div>
           <div class="font-mono text-[12px] text-slate-500 truncate">${short(consumer)}</div>
           <div class="text-right sm:text-right col-span-2 sm:col-span-1">
-            <span class="font-mono text-[13px] text-accent">+${fmtX1T(payout)}</span>
-            <span class="font-mono text-[10.5px] text-slate-500 ml-2">fee ${fmtX1T(fee)}</span>
+            <span class="tabular-nums text-[13px] text-accent">+${fmtX1T(payout)}</span>
+            <span class="tabular-nums text-[10.5px] text-slate-500 ml-2">fee ${fmtX1T(fee)}</span>
           </div>
           <div class="hidden sm:block text-right text-[12px] text-slate-500">${timeAgo(timestamp)}</div>
         </div>`;
