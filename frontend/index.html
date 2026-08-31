@@ -55,17 +55,17 @@
   <header class="border-b border-border bg-ink/80 backdrop-blur sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-accent2 flex items-center justify-center text-ink font-extrabold text-lg">🚰</div>
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-accent2 flex items-center justify-center text-ink font-black text-xl font-mono">S</div>
         <div>
           <div class="font-extrabold text-lg leading-none tracking-tight">Spigot</div>
-          <div class="text-[11px] text-slate-500 leading-none mt-1">pay-per-call rails for agents</div>
+          <div class="text-[11px] text-slate-500 leading-none mt-1">Pay per call. Instant settlement.</div>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <a href="https://maculatus-scan.x1eco.com/address/0xf4b3191C7a3315F0d2B375162E3025E78B25B595" target="_blank" rel="noopener"
-           class="hidden sm:flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-full border border-border text-slate-400 hover:text-accent hover:border-accent/40 transition">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          Maculatus Testnet · 10778
+           class="hidden sm:flex items-center gap-2 text-[11px] pl-2.5 pr-1 py-1 rounded-full border border-border text-slate-400 hover:border-accent/40 transition">
+          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>X1 EcoChain</span>
+          <span class="bg-panel2 text-slate-500 px-2 py-1 rounded-full">Maculatus Testnet</span>
         </a>
         <div id="walletArea"></div>
       </div>
@@ -86,18 +86,18 @@
         callers pay per request, providers withdraw earnings anytime. Built for machine-to-machine
         and AI agent payments, with a prepaid-credit mode for high-frequency callers.
       </p>
-      <div class="mt-6 grid grid-cols-3 gap-3 max-w-md">
+      <div class="mt-6 grid grid-cols-3 gap-3 max-w-xl">
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
-          <div id="statServices" class="text-2xl font-extrabold font-mono leading-none">–</div>
-          <div class="text-[11px] text-slate-500 mt-1.5">services live</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wide">Services live</div>
+          <div id="statServices" class="text-2xl font-extrabold font-mono leading-none mt-1.5">–</div>
         </div>
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
-          <div id="statCalls" class="text-2xl font-extrabold font-mono leading-none">–</div>
-          <div class="text-[11px] text-slate-500 mt-1.5">calls settled</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wide">Calls settled</div>
+          <div id="statCalls" class="text-2xl font-extrabold font-mono leading-none mt-1.5">–</div>
         </div>
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
-          <div class="text-2xl font-extrabold font-mono leading-none text-accent">2.5%</div>
-          <div class="text-[11px] text-slate-500 mt-1.5">platform fee</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wide">Fees collected (2.5%)</div>
+          <div id="statFees" class="text-2xl font-extrabold font-mono leading-none mt-1.5 text-accent">–</div>
         </div>
       </div>
     </div>
@@ -106,10 +106,22 @@
   <!-- Tabs -->
   <nav class="max-w-6xl mx-auto px-4 sm:px-6">
     <div class="flex gap-1 p-1 bg-panel border border-border rounded-xl w-full sm:w-fit overflow-x-auto">
-      <button data-tab="browse" class="tab-btn active whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">Browse Services</button>
-      <button data-tab="provider" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">Provider Dashboard</button>
-      <button data-tab="account" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">My Account</button>
-      <button data-tab="activity" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300">Activity</button>
+      <button data-tab="browse" class="tab-btn active whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300 flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Browse Services
+      </button>
+      <button data-tab="provider" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300 flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Provider Dashboard
+      </button>
+      <button data-tab="account" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300 flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+        My Account
+      </button>
+      <button data-tab="activity" class="tab-btn whitespace-nowrap text-sm font-semibold px-4 py-2 rounded-lg transition text-slate-300 flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+        Activity
+      </button>
     </div>
   </nav>
 
@@ -242,8 +254,9 @@
   </main>
 
   <footer class="max-w-6xl mx-auto px-4 sm:px-6 py-10 text-center text-xs text-slate-600 border-t border-border mt-8">
-    Spigot runs entirely on-chain on X1 EcoChain (Maculatus testnet).
-    Contract <a class="text-slate-500 hover:text-accent underline decoration-dotted" href="https://maculatus-scan.x1eco.com/address/0xf4b3191C7a3315F0d2B375162E3025E78B25B595" target="_blank" rel="noopener">0xf4b3…B595</a>.
+    Built on <span class="text-accent">X1 EcoChain</span> (Maculatus testnet) · Transparent fees · Instant settlement · Open for all
+    <br class="sm:hidden" />
+    <span class="sm:ml-1">— contract <a class="text-slate-500 hover:text-accent underline decoration-dotted" href="https://maculatus-scan.x1eco.com/address/0xf4b3191C7a3315F0d2B375162E3025E78B25B595" target="_blank" rel="noopener">0xf4b3…B595</a></span>
   </footer>
 
   <!-- Call modal -->

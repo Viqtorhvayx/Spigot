@@ -356,6 +356,9 @@ async function renderServiceGrid() {
             <div class="font-bold truncate">${escapeHtml(s.name)}</div>
             <div class="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
               ${avatarHtml(s.provider, 14)} <span class="truncate">${escapeHtml(providerLabel)}</span>
+              <button data-copy-address="${s.provider}" class="copyAddrBtn text-slate-600 hover:text-accent transition shrink-0" title="Copy address">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
             </div>
           </div>
           ${s.active
@@ -379,6 +382,15 @@ async function renderServiceGrid() {
 
   grid.querySelectorAll('.callBtn').forEach((btn) => {
     btn.addEventListener('click', () => openCallModal(Number(btn.dataset.callId)));
+  });
+  grid.querySelectorAll('.copyAddrBtn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard
+        .writeText(btn.dataset.copyAddress)
+        .then(() => toast('Address copied', 'success'))
+        .catch(() => toast('Could not copy address', 'error'));
+    });
   });
 }
 
@@ -661,6 +673,28 @@ document.getElementById('modalCallDirect').addEventListener('click', async () =>
 // ---------- activity feed ----------
 
 let activityLoaded = false;
+let settledEventsCache = null; // shared with the hero "fees collected" stat, so we don't fetch the same log twice
+
+async function fetchSettledEvents() {
+  if (!settledEventsCache) {
+    settledEventsCache = await readContract.queryFilter(readContract.filters.CallSettled(), DEPLOY_BLOCK, 'latest');
+  }
+  return settledEventsCache;
+}
+
+// Lifetime platform fees collected — summed from the real fee paid on every
+// CallSettled event, not derived/estimated, so it stays correct even if a
+// service's price changed after some of its calls were already made.
+async function loadLifetimeFees() {
+  try {
+    const events = await fetchSettledEvents();
+    const totalFees = events.reduce((sum, ev) => sum + ev.args.fee, 0n);
+    document.getElementById('statFees').textContent = fmtX1T(totalFees);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('statFees').textContent = '–';
+  }
+}
 
 async function loadActivity() {
   if (activityLoaded) return;
@@ -672,7 +706,7 @@ async function loadActivity() {
   emptyEl.classList.add('hidden');
 
   try {
-    const events = await readContract.queryFilter(readContract.filters.CallSettled(), DEPLOY_BLOCK, 'latest');
+    const events = await fetchSettledEvents();
     const sorted = events.sort((a, b) => b.blockNumber - a.blockNumber).slice(0, 100);
     loadingEl.classList.add('hidden');
     emptyEl.classList.toggle('hidden', sorted.length > 0);
@@ -701,12 +735,15 @@ async function loadActivity() {
 
 document.getElementById('refreshActivity').addEventListener('click', () => {
   activityLoaded = false;
+  settledEventsCache = null;
   loadActivity();
 });
 
 readContract.on('CallSettled', () => {
   activityLoaded = false;
+  settledEventsCache = null;
   loadServices();
+  loadLifetimeFees();
   if (!document.getElementById('tab-activity').classList.contains('hidden')) loadActivity();
 });
 
@@ -715,6 +752,7 @@ readContract.on('CallSettled', () => {
 (async function init() {
   renderWalletArea();
   await loadServices();
+  loadLifetimeFees(); // don't block first paint on the historical event scan
   document.getElementById('showInactive').addEventListener('change', renderServiceGrid);
 
   if (window.ethereum) {
