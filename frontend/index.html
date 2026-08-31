@@ -7,17 +7,14 @@
 <meta name="description" content="Spigot is on-chain pay-per-call settlement for APIs, AI agents, and machine services on X1 EcoChain. Register a service, get paid instantly per request." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚰</text></svg>" />
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <script>
   tailwind.config = {
     theme: {
       extend: {
         fontFamily: {
-          sans: ['Geist', 'ui-sans-serif', 'system-ui'],
-          mono: ['Geist Mono', 'ui-monospace', 'monospace'],
+          sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+          mono: ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'],
         },
         colors: {
           ink: '#0b0f14',
@@ -86,15 +83,15 @@
       </p>
       <div class="mt-6 grid grid-cols-3 gap-3 max-w-xl">
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wide">Services live</div>
+          <div class="text-[10px] text-slate-500 tracking-wide">Services Live</div>
           <div id="statServices" class="text-2xl font-extrabold font-mono leading-none mt-1.5">–</div>
         </div>
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wide">Calls settled</div>
+          <div class="text-[10px] text-slate-500 tracking-wide">Calls Settled</div>
           <div id="statCalls" class="text-2xl font-extrabold font-mono leading-none mt-1.5">–</div>
         </div>
         <div class="bg-panel border border-border rounded-xl px-4 py-3">
-          <div class="text-[10px] text-slate-500 uppercase tracking-wide">Fees collected (2.5%)</div>
+          <div class="text-[10px] text-slate-500 tracking-wide">Fees Collected (2.5%)</div>
           <div id="statFees" class="text-2xl font-extrabold font-mono leading-none mt-1.5 text-accent">–</div>
         </div>
       </div>
@@ -104,19 +101,19 @@
   <!-- Tabs -->
   <nav class="max-w-6xl mx-auto px-4 sm:px-6">
     <div class="flex gap-6 sm:gap-10 bg-panel border border-border rounded-xl px-4 sm:px-5 overflow-x-auto">
-      <button data-tab="browse" class="tab-btn active whitespace-nowrap text-sm font-semibold py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
+      <button data-tab="browse" class="tab-btn active whitespace-nowrap text-sm font-medium py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Browse Services
+        Browse
       </button>
-      <button data-tab="provider" class="tab-btn whitespace-nowrap text-sm font-semibold py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
+      <button data-tab="provider" class="tab-btn whitespace-nowrap text-sm font-medium py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        Provider Dashboard
+        Provider
       </button>
-      <button data-tab="account" class="tab-btn whitespace-nowrap text-sm font-semibold py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
+      <button data-tab="account" class="tab-btn whitespace-nowrap text-sm font-medium py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
-        My Account
+        Account
       </button>
-      <button data-tab="activity" class="tab-btn whitespace-nowrap text-sm font-semibold py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
+      <button data-tab="activity" class="tab-btn whitespace-nowrap text-sm font-medium py-4 border-b-2 border-transparent transition text-slate-400 flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
         Activity
       </button>
