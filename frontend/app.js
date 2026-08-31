@@ -119,6 +119,8 @@ async function runTx(promiseFn, { pending, success, button } = {}) {
 // ---------- wallet ----------
 
 let wcProvider = null; // the raw WalletConnect EthereumProvider, if that path was used
+let walletConnectModule = null; // cached dynamic import, so reopening WalletConnect doesn't re-fetch the bundle
+let connecting = false; // guards against a second click firing a duplicate, overlapping connection attempt
 
 function renderWalletArea() {
   const el = document.getElementById('walletArea');
@@ -127,13 +129,13 @@ function renderWalletArea() {
       <div class="relative">
         <button id="connectBtn" class="bg-accent text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:bg-lime-300 transition">Connect Wallet</button>
         <div id="connectMenu" class="hidden absolute right-0 mt-2 w-60 bg-panel border border-border rounded-xl shadow-lg overflow-hidden z-50">
-          <button id="connectInjected" class="w-full text-left px-4 py-3 hover:bg-panel2 transition">
-            <div class="text-sm font-semibold">Browser Wallet</div>
-            <div class="text-xs text-slate-500">MetaMask or another extension</div>
+          <button id="connectInjected" class="w-full text-left px-4 py-3 hover:bg-panel2 transition disabled:opacity-40 disabled:cursor-wait">
+            <div class="text-sm font-semibold flex items-center gap-2"><span class="connectLabel">Browser Wallet</span></div>
+            <div class="text-xs text-slate-500 connectSub">MetaMask or another extension</div>
           </button>
-          <button id="connectWC" class="w-full text-left px-4 py-3 hover:bg-panel2 transition border-t border-border">
-            <div class="text-sm font-semibold">WalletConnect</div>
-            <div class="text-xs text-slate-500">Scan a QR with a mobile wallet</div>
+          <button id="connectWC" class="w-full text-left px-4 py-3 hover:bg-panel2 transition border-t border-border disabled:opacity-40 disabled:cursor-wait">
+            <div class="text-sm font-semibold flex items-center gap-2"><span class="connectLabel">WalletConnect</span></div>
+            <div class="text-xs text-slate-500 connectSub">Scan a QR with a mobile wallet</div>
           </button>
         </div>
       </div>`;
@@ -142,8 +144,10 @@ function renderWalletArea() {
       e.stopPropagation();
       menu.classList.toggle('hidden');
     };
-    document.getElementById('connectInjected').onclick = connectWallet;
-    document.getElementById('connectWC').onclick = connectWalletConnect;
+    const injectedBtn = document.getElementById('connectInjected');
+    const wcBtn = document.getElementById('connectWC');
+    injectedBtn.onclick = (e) => { e.stopPropagation(); runConnect(injectedBtn, wcBtn, 'Connecting…', connectWallet); };
+    wcBtn.onclick = (e) => { e.stopPropagation(); runConnect(wcBtn, injectedBtn, 'Opening wallet…', connectWalletConnect); };
     document.addEventListener('click', () => menu.classList.add('hidden'), { once: true });
     return;
   }
@@ -167,6 +171,34 @@ function renderWalletArea() {
   displayNameOr(account).then((name) => {
     if (name) document.getElementById('walletAddrLabel').textContent = name;
   });
+}
+
+// Gives the connect-menu buttons immediate visual feedback the moment they're
+// clicked, instead of nothing happening until the wallet prompt (or an
+// error) eventually shows up — which is exactly what made a slow wallet
+// handshake look broken and invited a second, overlapping click.
+async function runConnect(activeBtn, otherBtn, pendingLabel, fn) {
+  if (connecting) return;
+  activeBtn.disabled = true;
+  otherBtn.disabled = true;
+  const labelEl = activeBtn.querySelector('.connectLabel');
+  const subEl = activeBtn.querySelector('.connectSub');
+  const originalLabel = labelEl.textContent;
+  const originalSub = subEl.textContent;
+  labelEl.innerHTML = `<span class="spinner"></span> ${pendingLabel}`;
+  subEl.textContent = 'Check your wallet…';
+  try {
+    await fn();
+  } finally {
+    // Only restore button state if the connect menu is still on screen — a
+    // successful connect re-renders the whole wallet area away from it.
+    if (document.body.contains(activeBtn)) {
+      activeBtn.disabled = false;
+      otherBtn.disabled = false;
+      labelEl.textContent = originalLabel;
+      subEl.textContent = originalSub;
+    }
+  }
 }
 
 // Clears local session state and re-renders. `silent` skips the toast —
@@ -206,10 +238,12 @@ async function disconnectWallet() {
 // detection races with our explicit calls. Passing a static `network` to
 // BrowserProvider below disables that auto-detection entirely.
 async function connectWallet() {
+  if (connecting) return; // a connection attempt is already in flight — ignore, don't overlap requests
   if (!window.ethereum) {
     toast('No browser wallet found — try WalletConnect instead, or install MetaMask', 'error');
     return;
   }
+  connecting = true;
   try {
     await window.ethereum.request({ method: 'eth_requestAccounts' });
     await ensureNetworkInjected();
@@ -219,6 +253,8 @@ async function connectWallet() {
   } catch (err) {
     console.error(err);
     toast(friendlyError(err), 'error');
+  } finally {
+    connecting = false;
   }
 }
 
@@ -241,12 +277,17 @@ async function ensureNetworkInjected() {
 // link) with a wallet app on their phone. Loaded lazily so a page load
 // never pays for it unless someone actually clicks this option.
 async function connectWalletConnect() {
+  if (connecting) return; // a connection attempt is already in flight — ignore, don't overlap requests
   if (!WALLETCONNECT_PROJECT_ID) {
     toast('WalletConnect isn\'t configured on this deployment yet — use a browser wallet for now', 'error');
     return;
   }
+  connecting = true;
   try {
-    const { EthereumProvider } = await import('https://esm.sh/@walletconnect/ethereum-provider@2.17.0?bundle');
+    if (!walletConnectModule) {
+      walletConnectModule = await import('https://esm.sh/@walletconnect/ethereum-provider@2.17.0?bundle');
+    }
+    const { EthereumProvider } = walletConnectModule;
     wcProvider = await EthereumProvider.init({
       projectId: WALLETCONNECT_PROJECT_ID,
       chains: [X1_CHAIN_ID_DEC],
@@ -271,6 +312,8 @@ async function connectWalletConnect() {
   } catch (err) {
     console.error(err);
     toast(friendlyError(err), 'error');
+  } finally {
+    connecting = false;
   }
 }
 
