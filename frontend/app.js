@@ -350,7 +350,7 @@ async function renderServiceGrid() {
       const providerLabel = names[idx] || short(s.provider);
       const cap = s.maxCallsPerDay > 0n ? `${s.maxCallsPerDay}/day per caller` : 'no daily cap';
       return `
-      <div class="bg-panel border border-border rounded-2xl p-4 flex flex-col gap-3 h-full ${s.active ? '' : 'opacity-50'}">
+      <div class="bg-panel border border-border rounded-2xl p-4 flex flex-col gap-3 h-full transition hover:border-accent/40 ${s.active ? '' : 'opacity-50'}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="font-bold truncate">${escapeHtml(s.name)}</div>

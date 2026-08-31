@@ -92,10 +92,19 @@
         callers pay per request, providers withdraw earnings anytime. Built for machine-to-machine
         and AI agent payments, with a prepaid-credit mode for high-frequency callers.
       </p>
-      <div class="mt-5 flex flex-wrap gap-4 text-sm">
-        <div class="flex items-baseline gap-1.5"><span id="statServices" class="font-bold text-lg text-white">–</span><span class="text-slate-500">services live</span></div>
-        <div class="flex items-baseline gap-1.5"><span id="statCalls" class="font-bold text-lg text-white">–</span><span class="text-slate-500">calls settled</span></div>
-        <div class="flex items-baseline gap-1.5"><span class="font-bold text-lg text-white">2.5%</span><span class="text-slate-500">platform fee</span></div>
+      <div class="mt-6 grid grid-cols-3 gap-3 max-w-md">
+        <div class="bg-panel border border-border rounded-xl px-4 py-3">
+          <div id="statServices" class="text-2xl font-extrabold font-mono leading-none">–</div>
+          <div class="text-[11px] text-slate-500 mt-1.5">services live</div>
+        </div>
+        <div class="bg-panel border border-border rounded-xl px-4 py-3">
+          <div id="statCalls" class="text-2xl font-extrabold font-mono leading-none">–</div>
+          <div class="text-[11px] text-slate-500 mt-1.5">calls settled</div>
+        </div>
+        <div class="bg-panel border border-border rounded-xl px-4 py-3">
+          <div class="text-2xl font-extrabold font-mono leading-none text-accent">2.5%</div>
+          <div class="text-[11px] text-slate-500 mt-1.5">platform fee</div>
+        </div>
       </div>
     </div>
   </section>
@@ -115,7 +124,7 @@
     <!-- Browse tab -->
     <section id="tab-browse" class="tab-panel fade-in">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-bold text-xl">Live Services</h2>
+        <h2 class="font-bold text-xl flex items-center gap-2"><span class="w-1 h-5 bg-accent rounded-full"></span>Live Services</h2>
         <label class="flex items-center gap-2 text-xs text-slate-400 select-none cursor-pointer">
           <input type="checkbox" id="showInactive" class="rounded border-border bg-panel2 accent-accent" />
           show inactive
@@ -130,7 +139,7 @@
       <div class="grid lg:grid-cols-5 gap-6">
         <div class="lg:col-span-2">
           <div class="bg-panel border border-border rounded-2xl p-5">
-            <h3 class="font-bold mb-1">Register a service</h3>
+            <h3 class="font-bold mb-1 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Register a service</h3>
             <p class="text-xs text-slate-500 mb-4">List an API, model endpoint, or data feed. Callers pay per call; you withdraw anytime.</p>
             <form id="registerForm" class="space-y-3">
               <div>
@@ -158,7 +167,7 @@
           </div>
         </div>
         <div class="lg:col-span-3">
-          <h3 class="font-bold mb-3">My services</h3>
+          <h3 class="font-bold mb-3 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>My services</h3>
           <div id="myServices" class="space-y-3"></div>
           <div id="myServicesEmpty" class="hidden text-center py-16 text-slate-500 text-sm border border-dashed border-border rounded-2xl">
             You haven't registered any services yet.
@@ -177,7 +186,7 @@
       </div>
       <div id="accountBody" class="hidden grid md:grid-cols-2 gap-6">
         <div class="bg-panel border border-border rounded-2xl p-5">
-          <h3 class="font-bold mb-1">Display name</h3>
+          <h3 class="font-bold mb-1 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Display name</h3>
           <p class="text-xs text-slate-500 mb-3">Shown instead of your raw address across Spigot.</p>
           <form id="nameForm" class="flex gap-2">
             <input id="displayNameInput" maxlength="64" placeholder="Agent-007" class="flex-1 bg-panel2 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent/60" />
@@ -186,7 +195,7 @@
         </div>
 
         <div class="bg-panel border border-border rounded-2xl p-5">
-          <h3 class="font-bold mb-1">Prepaid credit</h3>
+          <h3 class="font-bold mb-1 flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Prepaid credit</h3>
           <p class="text-xs text-slate-500 mb-3">Deposit once, call any service without a per-call transaction prompt.</p>
           <div class="text-3xl font-extrabold font-mono leading-none mb-4"><span id="creditBalance">0.0</span> <span class="text-sm text-slate-500 font-sans font-normal">X1T</span></div>
           <div class="flex gap-2">
@@ -201,7 +210,7 @@
 
         <div class="bg-panel border border-border rounded-2xl p-5 md:col-span-2">
           <div class="flex items-center justify-between mb-1">
-            <h3 class="font-bold">Withdrawable earnings</h3>
+            <h3 class="font-bold flex items-center gap-2"><span class="w-1 h-4 bg-accent rounded-full"></span>Withdrawable earnings</h3>
           </div>
           <p class="text-xs text-slate-500 mb-3">Accumulated from services you provide, or platform fees if this is the fee-recipient address.</p>
           <div class="flex items-center justify-between">
@@ -215,7 +224,7 @@
     <!-- Activity tab -->
     <section id="tab-activity" class="tab-panel hidden">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-bold text-xl">Recent settlements</h2>
+        <h2 class="font-bold text-xl flex items-center gap-2"><span class="w-1 h-5 bg-accent rounded-full"></span>Recent settlements</h2>
         <button id="refreshActivity" class="text-xs px-3 py-1.5 rounded-lg border border-border text-slate-400 hover:text-accent hover:border-accent/40">Refresh</button>
       </div>
       <div class="overflow-x-auto border border-border rounded-2xl">
