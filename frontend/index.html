@@ -33,12 +33,6 @@
 </script>
 <style>
   body { background: #0b0f14; }
-  .bg-grid {
-    background-image:
-      linear-gradient(rgba(199,240,76,0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(199,240,76,0.06) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
   .glow { box-shadow: 0 0 0 1px rgba(199,240,76,0.18), 0 8px 30px -12px rgba(199,240,76,0.22); }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #11161d; }
@@ -52,7 +46,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
-<body class="bg-ink text-slate-100 font-sans min-h-screen bg-grid">
+<body class="bg-ink text-slate-100 font-sans min-h-screen">
 
   <!-- Toasts -->
   <div id="toastHost" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-[92vw] max-w-sm"></div>
