@@ -488,8 +488,8 @@ async function renderServiceGrid() {
         <div class="flex-1"></div>
         <div class="flex items-end justify-between border-t border-border mt-4 pt-4">
           <div>
-            <div class="tabular-nums text-2xl font-black tracking-tight text-accent leading-none">${fmtX1T(s.pricePerCall)}</div>
-            <div class="text-[10.5px] text-slate-500 mt-1.5">X1T per call</div>
+            <div class="flex items-baseline gap-1.5"><span class="tabular-nums text-2xl font-black tracking-tight text-accent leading-none">${fmtX1T(s.pricePerCall)}</span><span class="text-[12px] text-slate-500">X1T</span></div>
+            <div class="text-[10.5px] text-slate-500 mt-1.5">per call</div>
           </div>
           <button data-call-id="${s.id}" class="callBtn bg-accent text-ink text-[13px] font-semibold rounded-lg px-4 py-2.5 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
         </div>
@@ -868,8 +868,7 @@ function renderDetailFull() {
   document.getElementById('detailBody').innerHTML = `
     <div>
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="font-mono text-xl sm:text-2xl text-slate-500">${short(s.provider)}</span>
-        <span class="text-xl sm:text-2xl text-border2">/</span>
+        <span class="font-mono text-xl sm:text-2xl text-slate-500 whitespace-nowrap">${short(s.provider)} /</span>
         <span class="text-xl sm:text-2xl font-bold text-slate-100">${escapeHtml(s.name)}</span>
       </div>
       <div class="flex flex-wrap gap-1.5 mt-3.5">
@@ -1077,15 +1076,28 @@ function renderActivityTable() {
       </div>`;
     const rows = g.events.map((ev) => {
       const { receiptId, consumer, payout, fee, timestamp } = ev.args;
+      const receiptPill = `<span class="font-mono text-[12px] text-slate-400 bg-panel2 rounded px-2 py-1">#${receiptId.toString()}</span>`;
       return `
-        <div class="grid grid-cols-2 sm:grid-cols-[70px_1fr_140px_70px] gap-2 sm:gap-4 items-center px-4 py-3 border-t border-border hover:bg-white/[0.02] transition">
-          <div><span class="font-mono text-[12px] text-slate-400 bg-panel2 rounded px-2 py-1">#${receiptId.toString()}</span></div>
-          <div class="font-mono text-[12px] text-slate-500 truncate">${short(consumer)}</div>
-          <div class="text-right sm:text-right col-span-2 sm:col-span-1">
-            <span class="tabular-nums font-semibold text-[13px] text-accent">+${fmtX1T(payout)}</span>
-            <span class="tabular-nums font-medium text-[10.5px] text-slate-500 ml-2">fee ${fmtX1T(fee)}</span>
+        <div class="border-t border-border hover:bg-white/[0.02] transition">
+          <div class="sm:hidden flex items-center justify-between gap-3 px-4 py-3">
+            <div class="flex flex-col items-start gap-1.5 min-w-0">
+              ${receiptPill}
+              <span class="font-mono text-[11.5px] text-slate-500 truncate">${short(consumer)}</span>
+            </div>
+            <div class="flex flex-col items-end gap-1.5 shrink-0">
+              <span class="tabular-nums font-semibold text-[13px] text-accent">+${fmtX1T(payout)}</span>
+              <span class="tabular-nums font-medium text-[10.5px] text-slate-500">fee ${fmtX1T(fee)} &middot; ${timeAgo(timestamp)}</span>
+            </div>
           </div>
-          <div class="hidden sm:block text-right text-[12px] text-slate-500">${timeAgo(timestamp)}</div>
+          <div class="hidden sm:grid grid-cols-[70px_1fr_140px_70px] gap-4 items-center px-4 py-3">
+            <div>${receiptPill}</div>
+            <div class="font-mono text-[12px] text-slate-500 truncate">${short(consumer)}</div>
+            <div class="text-right">
+              <span class="tabular-nums font-semibold text-[13px] text-accent">+${fmtX1T(payout)}</span>
+              <span class="tabular-nums font-medium text-[10.5px] text-slate-500 ml-2">fee ${fmtX1T(fee)}</span>
+            </div>
+            <div class="text-right text-[12px] text-slate-500">${timeAgo(timestamp)}</div>
+          </div>
         </div>`;
     }).join('');
     return groupHead + rows;

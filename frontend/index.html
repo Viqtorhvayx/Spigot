@@ -201,21 +201,21 @@
             <span class="flex-1 h-px bg-border"></span>
           </div>
           <div class="bg-panel border border-border rounded-xl px-5 py-5 flex flex-col sm:flex-row items-start gap-4 sm:gap-4">
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 w-full">
               <div class="text-[13px] font-bold">Fund or pay direct</div>
               <div class="text-[12px] text-slate-400 leading-relaxed mt-1">Deposit credit once, or pay the exact price with every call.</div>
             </div>
             <span class="hidden sm:block text-slate-600 self-center shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h13"/><path d="M12.5 6.5 19 12l-6.5 5.5"/></svg>
             </span>
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 w-full border-t border-border pt-4 sm:border-t-0 sm:pt-0">
               <div class="text-[13px] font-bold">Call the service</div>
               <div class="text-[12px] text-slate-400 leading-relaxed mt-1">The contract meters each call against the provider&rsquo;s daily cap.</div>
             </div>
             <span class="hidden sm:block text-slate-600 self-center shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h13"/><path d="M12.5 6.5 19 12l-6.5 5.5"/></svg>
             </span>
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 w-full border-t border-border pt-4 sm:border-t-0 sm:pt-0">
               <div class="text-[13px] font-bold">Instant settlement</div>
               <div class="text-[12px] text-slate-400 leading-relaxed mt-1">The provider is credited the moment the call lands, receipt on-chain.</div>
             </div>
@@ -320,11 +320,11 @@
               <div class="mt-auto flex flex-col gap-2">
                 <div class="flex gap-2">
                   <input id="depositAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 min-w-0 bg-panel2 border border-border rounded-lg px-3 py-2.5 text-[13px] outline-none focus:ring-2 focus:ring-accent/30" />
-                  <button id="depositBtn" class="bg-accent text-ink font-semibold text-[12.5px] rounded-lg px-4 py-2.5 hover:bg-lime-300 transition disabled:opacity-50 whitespace-nowrap">Deposit</button>
+                  <button id="depositBtn" class="w-[92px] shrink-0 bg-accent text-ink font-semibold text-[12.5px] rounded-lg px-4 py-2.5 hover:bg-lime-300 transition disabled:opacity-50">Deposit</button>
                 </div>
                 <div class="flex gap-2">
                   <input id="withdrawCreditAmount" type="number" min="0" step="0.0001" placeholder="Amount" class="flex-1 min-w-0 bg-panel2 border border-border rounded-lg px-3 py-2.5 text-[13px] outline-none focus:ring-2 focus:ring-accent/30" />
-                  <button id="withdrawCreditBtn" class="bg-panel2 border border-border2 hover:border-slate-500 transition font-semibold text-[12.5px] rounded-lg px-4 py-2.5 disabled:opacity-50 whitespace-nowrap">Withdraw</button>
+                  <button id="withdrawCreditBtn" class="w-[92px] shrink-0 bg-panel2 border border-border2 hover:border-slate-500 transition font-semibold text-[12.5px] rounded-lg px-4 py-2.5 disabled:opacity-50">Withdraw</button>
                 </div>
               </div>
             </div>
