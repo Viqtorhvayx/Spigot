@@ -519,6 +519,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const cap = document.getElementById('svcMaxCalls').value || '0';
   const btn = document.getElementById('registerBtn');
 
+  if (!name) return toast('Enter a service name', 'error');
+  if (!description) return toast('Enter a description', 'error');
+  if (!price || Number(price) <= 0) return toast('Enter a price per call', 'error');
+
   try {
     await runTx(
       () => signerContract.registerService(name, description, ethers.parseEther(price), BigInt(cap)),
