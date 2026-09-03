@@ -439,6 +439,13 @@ document.querySelectorAll('[data-view]').forEach((btn) => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
 
+// Lets the marketing homepage deep-link straight into a view, e.g.
+// app.html?view=provider from its "Register a service" button.
+{
+  const requestedView = new URLSearchParams(window.location.search).get('view');
+  if (requestedView && VIEW_META[requestedView]) switchView(requestedView);
+}
+
 document.getElementById('creditChipDesktop').addEventListener('click', () => switchView('account'));
 
 // ---------- services: load, filter, sort, render ----------

@@ -91,7 +91,8 @@ strangers. Turn the tap on, per request, and it's paid for.
 contracts/Spigot.sol    — the contract
 test/Spigot.test.js     — 16 Hardhat tests
 scripts/deploy.js       — deployment script
-frontend/               — static site (no build step): index.html, app.js, config.js
+frontend/               — static site (no build step): index.html (marketing homepage),
+                          app.html (the dApp), app.js, config.js
 x402/                   — HTTP 402 payment middleware + client + live demo (see x402/README.md)
 ```
 
