@@ -536,7 +536,7 @@ async function renderServiceGrid() {
             <div class="flex items-baseline gap-1.5"><span class="tabular-nums text-2xl font-black tracking-tight text-accent leading-none">${fmtX1T(s.pricePerCall)}</span><span class="text-[12px] text-slate-500">X1T</span></div>
             <div class="text-[10.5px] text-slate-500 mt-1.5">per call</div>
           </div>
-          <button data-call-id="${s.id}" class="callBtn bg-accent/10 border border-accent/25 text-accent text-[13px] font-semibold rounded-xl px-4 py-2.5 transition hover:bg-accent/20 active:bg-accent active:text-ink active:border-accent disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
+          <button data-call-id="${s.id}" class="callBtn accent-pill border text-[13px] font-semibold rounded-xl px-4 py-2.5 transition disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
         </div>
       </div>`;
     })
@@ -577,6 +577,27 @@ document.getElementById('serviceSearch').addEventListener('input', (e) => {
   serviceSearchTerm = e.target.value.trim();
   renderServiceGrid();
 });
+
+// Accent "pill" buttons (Call, Deposit, Withdraw) show their solid pressed
+// look via this explicit .is-pressed class rather than :active — on touch
+// devices :active can get left stuck on after a tap instead of clearing on
+// release, which is what made Deposit look permanently "clicked". Delegated
+// on document so it also covers callBtn instances re-rendered after every
+// renderServiceGrid() call.
+function clearPressedPills() {
+  document.querySelectorAll('.accent-pill.is-pressed').forEach((el) => el.classList.remove('is-pressed'));
+}
+document.addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest('.accent-pill');
+  if (btn && !btn.disabled) btn.classList.add('is-pressed');
+});
+document.addEventListener('pointerup', clearPressedPills);
+document.addEventListener('pointercancel', clearPressedPills);
+document.addEventListener('pointerout', (e) => {
+  const btn = e.target.closest('.accent-pill');
+  if (btn && (!e.relatedTarget || !btn.contains(e.relatedTarget))) btn.classList.remove('is-pressed');
+});
+window.addEventListener('blur', clearPressedPills);
 
 async function renderMyServices() {
   const container = document.getElementById('myServices');
