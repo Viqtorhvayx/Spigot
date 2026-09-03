@@ -14,7 +14,6 @@ let platformFeeBps = 250n; // 2.5% default, overwritten with the real on-chain v
 // ---------- icons (small inline set reused across dynamically-rendered markup) ----------
 
 const ICON = {
-  bolt: '<path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5"/>',
   chevr: '<path d="M9.5 6 15 12l-5.5 6"/>',
@@ -527,7 +526,7 @@ async function renderServiceGrid() {
         <p class="text-[13px] text-slate-400 leading-relaxed mt-2.5 line-clamp-2">${escapeHtml(s.description)}</p>
         <div class="flex flex-wrap gap-1.5 mt-3.5">
           <span class="inline-flex items-center gap-1.5 text-[11px] ${s.active ? 'text-emerald-400' : 'text-slate-500'} bg-panel2 rounded px-2 py-1"><span class="w-1.5 h-1.5 rounded-full ${s.active ? 'bg-emerald-400' : 'bg-slate-500'}"></span>${s.active ? 'Active' : 'Inactive'}</span>
-          <span class="inline-flex items-center gap-1.5 text-[11px] text-accent bg-panel2 rounded px-2 py-1">${svg('bolt', 11, 2)}${s.totalCalls.toString()} calls settled</span>
+          <span class="inline-flex items-center gap-1.5 text-[11px] text-accent bg-panel2 rounded px-2 py-1">${s.totalCalls.toString()} calls settled</span>
           <span class="inline-flex items-center gap-1.5 text-[11px] text-slate-400 bg-panel2 rounded px-2 py-1">${svg('clock', 11, 2)}${cap}</span>
         </div>
         <div class="flex-1"></div>
@@ -1031,7 +1030,7 @@ function renderCallPanel() {
       <button id="detailCallBtn" class="w-full bg-accent text-ink font-semibold text-[13.5px] rounded-xl py-3 mt-3 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${(!s.active) || (detailPayMode === 'credit' && creditKnown && !canCredit) ? 'disabled' : ''}>
         ${detailPayMode === 'direct' ? `Pay ${fmtX1T(s.pricePerCall)} X1T and call` : 'Call using credit'}
       </button>
-      <div class="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mt-3">${svg('bolt', 11, 2)}Settles in one transaction</div>
+      <div class="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mt-3">Settles in one transaction</div>
     </div>
   `;
 
