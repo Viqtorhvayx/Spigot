@@ -146,7 +146,7 @@ let connecting = false; // guards against a second click firing a duplicate, ove
 function connectButtonHtml() {
   return `
     <div class="relative">
-      <button id="connectBtn" class="bg-accent text-ink font-semibold text-[13px] rounded-lg px-4 py-2 hover:bg-lime-300 transition whitespace-nowrap">Connect Wallet</button>
+      <button id="connectBtn" class="bg-accent text-ink font-semibold text-[13px] rounded-xl px-4 py-2 hover:bg-lime-300 transition whitespace-nowrap">Connect Wallet</button>
       <div id="connectMenu" class="hidden absolute right-0 mt-2 w-60 bg-panel border border-border rounded-xl shadow-lg overflow-hidden z-50">
         <button id="connectInjected" class="w-full text-left px-4 py-3 hover:bg-panel2 transition disabled:opacity-40 disabled:cursor-wait">
           <div class="text-sm font-semibold flex items-center gap-2"><span class="connectLabel">Browser Wallet</span></div>
@@ -536,7 +536,7 @@ async function renderServiceGrid() {
             <div class="flex items-baseline gap-1.5"><span class="tabular-nums text-2xl font-black tracking-tight text-accent leading-none">${fmtX1T(s.pricePerCall)}</span><span class="text-[12px] text-slate-500">X1T</span></div>
             <div class="text-[10.5px] text-slate-500 mt-1.5">per call</div>
           </div>
-          <button data-call-id="${s.id}" class="callBtn bg-accent/10 border border-accent/25 text-accent text-[13px] font-semibold rounded-full px-4 py-2.5 transition hover:bg-accent/20 active:bg-accent active:text-ink active:border-accent active:rounded-lg disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
+          <button data-call-id="${s.id}" class="callBtn bg-accent/10 border border-accent/25 text-accent text-[13px] font-semibold rounded-xl px-4 py-2.5 transition hover:bg-accent/20 active:bg-accent active:text-ink active:border-accent disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
         </div>
       </div>`;
     })
@@ -619,8 +619,8 @@ async function renderMyServices() {
           </div>
         </div>
         <div class="flex gap-2 mt-3">
-          <button data-edit-id="${s.id}" class="editBtn flex-1 bg-panel2 border border-border2 hover:border-slate-500 transition text-[12px] font-semibold rounded-lg py-2">Edit</button>
-          <button data-toggle-id="${s.id}" class="toggleBtn flex-1 bg-panel2 border border-border2 hover:border-slate-500 transition text-[12px] font-semibold rounded-lg py-2">${s.active ? 'Deactivate' : 'Reactivate'}</button>
+          <button data-edit-id="${s.id}" class="editBtn flex-1 bg-panel2 border border-border2 hover:border-slate-500 transition text-[12px] font-semibold rounded-xl py-2">Edit</button>
+          <button data-toggle-id="${s.id}" class="toggleBtn flex-1 bg-panel2 border border-border2 hover:border-slate-500 transition text-[12px] font-semibold rounded-xl py-2">${s.active ? 'Deactivate' : 'Reactivate'}</button>
         </div>
         <div class="editForm hidden mt-3 pt-3 border-t border-border flex flex-col gap-2" id="editForm-${s.id}"></div>
       </div>`)
@@ -655,7 +655,7 @@ function toggleEditForm(id) {
       <input class="edit-price bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" type="number" min="0" step="0.0001" value="${ethers.formatEther(s.pricePerCall)}" />
       <input class="edit-cap bg-panel2 border border-border rounded-lg px-3 py-2 text-sm" type="number" min="0" step="1" value="${s.maxCallsPerDay}" />
     </div>
-    <button class="saveEditBtn w-full bg-accent text-ink font-semibold text-sm rounded-lg py-2 hover:bg-lime-300 transition">Save changes</button>
+    <button class="saveEditBtn w-full bg-accent text-ink font-semibold text-sm rounded-xl py-2 hover:bg-lime-300 transition">Save changes</button>
   `;
   form.querySelector('.saveEditBtn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -1007,7 +1007,7 @@ function renderCallPanel() {
       ${detailPayMode === 'credit' && creditKnown
         ? `<div class="text-[11.5px] ${creditShort ? 'text-rose-400' : 'text-slate-500'} mt-1 mb-2">Your balance: ${fmtX1T(creditBal)} X1T${creditShort ? ' — not enough for this call' : ''}</div>`
         : ''}
-      <button id="detailCallBtn" class="w-full bg-accent text-ink font-semibold text-[13.5px] rounded-lg py-3 mt-3 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${(!s.active) || (detailPayMode === 'credit' && creditKnown && !canCredit) ? 'disabled' : ''}>
+      <button id="detailCallBtn" class="w-full bg-accent text-ink font-semibold text-[13.5px] rounded-xl py-3 mt-3 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${(!s.active) || (detailPayMode === 'credit' && creditKnown && !canCredit) ? 'disabled' : ''}>
         ${detailPayMode === 'direct' ? `Pay ${fmtX1T(s.pricePerCall)} X1T and call` : 'Call using credit'}
       </button>
       <div class="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mt-3">${svg('bolt', 11, 2)}Settles in one transaction</div>
