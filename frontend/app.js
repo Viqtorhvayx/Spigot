@@ -258,12 +258,30 @@ function resetWalletState({ silent = false } = {}) {
 
 async function disconnectWallet() {
   const activeWcProvider = wcProvider;
+  const wasInjected = !wcProvider && !!window.ethereum && !!account;
   resetWalletState({ silent: true });
   if (activeWcProvider) {
     try {
       await activeWcProvider.disconnect();
     } catch (err) {
       console.error('error tearing down WalletConnect session:', err);
+    }
+  } else if (wasInjected) {
+    // Clearing our own JS state isn't enough — MetaMask (and most injected
+    // wallets) remember this site as authorized until the site explicitly
+    // revokes it, otherwise the eth_accounts check at boot silently
+    // reconnects the exact same account on the very next page load, which
+    // looks like "Disconnect" never worked at all. wallet_revokePermissions
+    // (EIP-2255) is the real revoke; not every wallet supports it yet, so
+    // this is best-effort and we don't surface the failure — the site-side
+    // session is still fully cleared either way.
+    try {
+      await window.ethereum.request({
+        method: 'wallet_revokePermissions',
+        params: [{ eth_accounts: {} }],
+      });
+    } catch (err) {
+      console.warn('wallet does not support wallet_revokePermissions — it may still show Spigot as connected:', err);
     }
   }
   toast('Wallet disconnected', 'info');
@@ -276,22 +294,42 @@ async function disconnectWallet() {
 // ethers' own automatic network detection races with our explicit calls.
 // Passing a static `network` to BrowserProvider below disables that
 // auto-detection entirely.
-async function connectWallet() {
+// `silent` is used only for the boot-time restore below: it must never
+// produce a wallet prompt, a network-switch request, or a toast — those are
+// exactly what makes a page *load* look like a wallet just connected itself.
+// eth_accounts (unlike eth_requestAccounts) never prompts; it only returns
+// accounts this site is already authorized for, so a silent restore is safe.
+async function connectWallet({ silent = false } = {}) {
   if (connecting) return;
   if (!window.ethereum) {
-    toast('No browser wallet found — try WalletConnect instead, or install MetaMask', 'error');
+    if (!silent) toast('No browser wallet found — try WalletConnect instead, or install MetaMask', 'error');
     return;
   }
   connecting = true;
   try {
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-    await ensureNetworkInjected();
+    const accounts = silent
+      ? await window.ethereum.request({ method: 'eth_accounts' })
+      : await window.ethereum.request({ method: 'eth_requestAccounts' });
+    if (!accounts || !accounts.length) return; // nothing authorized — stay disconnected, no prompt either way
+
+    if (silent) {
+      // Never force a network switch on an unattended restore — if the
+      // wallet isn't already on X1, just leave the session disconnected
+      // until the user explicitly clicks Connect.
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId?.toLowerCase() !== X1_CHAIN_ID_HEX) return;
+    } else {
+      await ensureNetworkInjected();
+    }
+
     browserProvider = new ethers.BrowserProvider(window.ethereum, { chainId: X1_CHAIN_ID_DEC, name: 'x1-maculatus' });
     signer = await browserProvider.getSigner();
-    await finishConnect();
+    await finishConnect({ silent });
   } catch (err) {
-    console.error(err);
-    toast(friendlyError(err), 'error');
+    if (!silent) {
+      console.error(err);
+      toast(friendlyError(err), 'error');
+    }
   } finally {
     connecting = false;
   }
@@ -353,14 +391,14 @@ async function connectWalletConnect() {
   }
 }
 
-async function finishConnect() {
+async function finishConnect({ silent = false } = {}) {
   signerContract = new ethers.Contract(CONTRACT_ADDRESS, METERLY_ABI, signer);
   account = await signer.getAddress();
   renderWalletArea();
   refreshAccountPanel();
   refreshMyServices();
   if (!document.getElementById('view-detail').classList.contains('hidden')) await renderDetailFull();
-  toast('Wallet connected', 'success');
+  if (!silent) toast('Wallet connected', 'success');
 }
 
 if (window.ethereum) {
@@ -1187,9 +1225,6 @@ readContract.on('CallSettled', (...args) => {
   loadLifetimeFees(); // don't block first paint on the historical event scan
 
   if (window.ethereum) {
-    try {
-      const accs = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accs && accs.length) await connectWallet();
-    } catch {}
+    await connectWallet({ silent: true });
   }
 })();
