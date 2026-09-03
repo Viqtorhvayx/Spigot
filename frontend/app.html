@@ -147,24 +147,20 @@
         </div>
       </header>
 
-      <!-- Stat ribbon -->
+      <!-- Stat cards -->
       <section class="border-b border-border bg-panel/40">
-        <div class="flex items-center px-4 sm:px-6 lg:px-8 py-4 lg:py-5">
-          <div class="flex items-stretch gap-4 lg:gap-9 flex-1 lg:justify-between overflow-x-auto">
-            <div class="shrink-0">
-              <div class="text-[9px] font-semibold tracking-widest text-slate-500 mb-1.5 lg:mb-2">Fees Collected</div>
-              <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight text-accent leading-none"><span id="statFees">–</span><span class="text-[10px] lg:text-xs text-slate-500 font-sans ml-1">X1T</span></div>
-            </div>
-            <div class="w-px bg-border shrink-0"></div>
-            <div class="shrink-0">
-              <div class="text-[9px] font-semibold tracking-widest text-slate-500 mb-1.5 lg:mb-2">Calls Settled</div>
-              <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight leading-none" id="statCalls">–</div>
-            </div>
-            <div class="w-px bg-border shrink-0"></div>
-            <div class="shrink-0">
-              <div class="text-[9px] font-semibold tracking-widest text-slate-500 mb-1.5 lg:mb-2">Services Live <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot ml-0.5"></span></div>
-              <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight leading-none" id="statServices">–</div>
-            </div>
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-4 px-4 sm:px-6 lg:px-8 py-4 lg:py-5">
+          <div class="bg-panel border border-border rounded-xl p-3 sm:p-4 lg:p-5">
+            <div class="text-[9px] font-semibold tracking-widest text-slate-500 mb-1.5 lg:mb-2">Fees Collected</div>
+            <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight text-accent leading-none"><span id="statFees">–</span><span class="text-[10px] lg:text-xs text-slate-500 font-sans ml-1">X1T</span></div>
+          </div>
+          <div class="bg-panel border border-border rounded-xl p-3 sm:p-4 lg:p-5">
+            <div class="text-[9px] font-semibold tracking-widest text-slate-500 mb-1.5 lg:mb-2">Calls Settled</div>
+            <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight leading-none" id="statCalls">–</div>
+          </div>
+          <div class="bg-panel border border-border rounded-xl p-3 sm:p-4 lg:p-5">
+            <div class="text-[9px] font-semibold tracking-widest text-slate-500 mb-1.5 lg:mb-2">Services Live <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot ml-0.5"></span></div>
+            <div class="tabular-nums text-xl lg:text-3xl font-black tracking-tight leading-none" id="statServices">–</div>
           </div>
         </div>
       </section>
