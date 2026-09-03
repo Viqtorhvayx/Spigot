@@ -536,7 +536,7 @@ async function renderServiceGrid() {
             <div class="flex items-baseline gap-1.5"><span class="tabular-nums text-2xl font-black tracking-tight text-accent leading-none">${fmtX1T(s.pricePerCall)}</span><span class="text-[12px] text-slate-500">X1T</span></div>
             <div class="text-[10.5px] text-slate-500 mt-1.5">per call</div>
           </div>
-          <button data-call-id="${s.id}" class="callBtn bg-accent text-ink text-[13px] font-semibold rounded-lg px-4 py-2.5 hover:bg-lime-300 transition disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
+          <button data-call-id="${s.id}" class="callBtn bg-accent/10 border border-accent/25 text-accent text-[13px] font-semibold rounded-full px-4 py-2.5 transition hover:bg-accent/20 active:bg-accent active:text-ink active:border-accent active:rounded-lg disabled:opacity-40 disabled:cursor-not-allowed" ${s.active ? '' : 'disabled'}>Call</button>
         </div>
       </div>`;
     })
