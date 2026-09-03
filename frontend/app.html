@@ -240,9 +240,8 @@
                 <div>
                   <div class="flex items-center justify-between gap-2 mb-1.5">
                     <div class="flex items-center gap-1.5">
-                      <span class="font-mono text-[12.5px] font-medium">name</span>
+                      <span class="text-[12.5px] font-medium">Name (String)</span>
                       <span class="text-accent text-xs">*</span>
-                      <span class="text-[11px] text-slate-500">string</span>
                     </div>
                     <span id="nameCount" class="tabular-nums font-medium text-[10.5px] text-slate-500">0/64</span>
                   </div>
@@ -251,8 +250,7 @@
                 <div>
                   <div class="flex items-center justify-between gap-2 mb-1.5">
                     <div class="flex items-center gap-1.5">
-                      <span class="font-mono text-[12.5px] font-medium">description</span>
-                      <span class="text-[11px] text-slate-500">string</span>
+                      <span class="text-[12.5px] font-medium">Description (String)</span>
                     </div>
                     <span id="descCount" class="tabular-nums font-medium text-[10.5px] text-slate-500">0/280</span>
                   </div>
@@ -260,17 +258,15 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-1.5 mb-1.5">
-                    <span class="font-mono text-[12.5px] font-medium">pricePerCall</span>
+                    <span class="text-[12.5px] font-medium">Price Per Call (X1T)</span>
                     <span class="text-accent text-xs">*</span>
-                    <span class="text-[11px] text-slate-500">X1T</span>
                   </div>
                   <input id="svcPrice" type="number" min="0" step="0.0001" placeholder="0.05" class="w-full bg-panel2 border border-border rounded-lg px-3 py-2.5 text-[13.5px] outline-none focus:ring-2 focus:ring-accent/30" />
                   <div class="text-[11.5px] text-slate-500 mt-1.5 leading-relaxed">The 2.5% fee comes out of this, not on top of it.</div>
                 </div>
                 <div>
                   <div class="flex items-center gap-1.5 mb-1.5">
-                    <span class="font-mono text-[12.5px] font-medium">maxCallsPerDay</span>
-                    <span class="text-[11px] text-slate-500">uint</span>
+                    <span class="text-[12.5px] font-medium">Maximum Call Per Day (Unit)</span>
                   </div>
                   <input id="svcMaxCalls" type="number" min="0" step="1" placeholder="0" class="w-full bg-panel2 border border-border rounded-lg px-3 py-2.5 text-[13.5px] outline-none focus:ring-2 focus:ring-accent/30" />
                   <div class="text-[11.5px] text-slate-500 mt-1.5 leading-relaxed">Per caller, per day. Set 0 for no limit.</div>
