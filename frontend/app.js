@@ -248,6 +248,7 @@ function resetWalletState({ silent = false } = {}) {
   signer = null;
   signerContract = null;
   account = null;
+  stopWalletBalancePoll();
   renderWalletArea();
   refreshAccountPanel();
   refreshMyServices();
@@ -393,6 +394,7 @@ async function connectWalletConnect() {
 async function finishConnect({ silent = false } = {}) {
   signerContract = new ethers.Contract(CONTRACT_ADDRESS, METERLY_ABI, signer);
   account = await signer.getAddress();
+  startWalletBalancePoll();
   renderWalletArea();
   refreshAccountPanel();
   refreshMyServices();
@@ -743,12 +745,49 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 
 // ---------- account panel ----------
 
+// Wallet's raw native X1T balance — separate from consumerBalance() (the
+// prepaid credit escrowed in the contract). Faucet claims and direct
+// transfers land here, not in credit, so this is what actually confirms a
+// faucet claim went through. Read-only (readProvider), so it works even
+// mid-connect before a signer exists.
+let walletBalancePoll = null;
+
+async function refreshWalletBalance() {
+  const desktopEl = document.getElementById('walletBalanceDesktop');
+  const mobileEl = document.getElementById('walletBalanceMobile');
+  if (!account) {
+    desktopEl.textContent = '0.0';
+    mobileEl.textContent = '0.0';
+    return;
+  }
+  try {
+    const balance = await readProvider.getBalance(account);
+    const v = fmtX1T(balance);
+    desktopEl.textContent = v;
+    mobileEl.textContent = v;
+  } catch (err) {
+    console.error('failed to load wallet balance:', err);
+  }
+}
+
+function startWalletBalancePoll() {
+  stopWalletBalancePoll();
+  walletBalancePoll = setInterval(refreshWalletBalance, 20000);
+}
+
+function stopWalletBalancePoll() {
+  if (walletBalancePoll) {
+    clearInterval(walletBalancePoll);
+    walletBalancePoll = null;
+  }
+}
+
 async function refreshAccountPanel() {
   const setCredit = (v) => {
     document.getElementById('creditBalance').textContent = v;
     document.getElementById('creditChipValueDesktop').textContent = v;
-    document.getElementById('creditChipValueMobile').textContent = v;
   };
+  await refreshWalletBalance();
   if (!account) {
     setCredit('0.0');
     document.getElementById('earningsBalance').textContent = '0.0';
